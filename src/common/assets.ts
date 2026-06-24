@@ -4,6 +4,7 @@ export const ASSET_PACK_KEYS = {
 
 export const ASSET_KEYS = {
   PLAYER: 'PLAYER',
+  CAR: 'CAR',
   POT: 'POT',
   POT_BREAK: 'POT_BREAK',
   SPIDER: 'SPIDER',
@@ -51,6 +52,11 @@ export const PLAYER_ANIMATION_KEYS = {
   SWORD_1_ATTACK_DOWN: 'player_atk_1_down',
   SWORD_1_ATTACK_UP: 'player_atk_1_up',
   SWORD_1_ATTACK_SIDE: 'player_atk_1_side',
+} as const;
+
+export const CAR_ANIMATION_KEYS = {
+  MOVE_R: 'move-r',
+  MOVE_U: 'move-u',
 } as const;
 
 export const SPIDER_ANIMATION_KEYS = {

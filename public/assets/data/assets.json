@@ -11,6 +11,17 @@
     ]
   },
   {
+    "path": "assets/images/car",
+    "files": [
+      {
+        "type": "aseprite",
+        "key": "CAR",
+        "textureURL": "Car2.png",
+        "atlasURL": "Car_cleaned2.json"
+      }
+    ]
+  },
+  {
     "path": "assets/images/hud",
     "files": [
       {

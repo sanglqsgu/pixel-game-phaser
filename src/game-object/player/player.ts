@@ -1,5 +1,5 @@
 import { Position } from "../../common/types";
-import { PLAYER_ANIMATION_KEYS } from "../../common/assets";
+import { CAR_ANIMATION_KEYS, PLAYER_ANIMATION_KEYS } from "../../common/assets";
 
 export type PlayerConfig = {
     scene: Phaser.Scene;
@@ -17,6 +17,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         scene.add.existing(this);
         scene.physics.add.existing(this);
 
-        this.play({ key: PLAYER_ANIMATION_KEYS.IDLE_DOWN, repeat:-1});
+        this.play({ key: CAR_ANIMATION_KEYS.MOVE_R, repeat:-1});
     }
 }

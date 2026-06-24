@@ -20,6 +20,6 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   #createAnimation() :void {
-    this.anims.createFromAseprite(ASSET_KEYS.PLAYER)
+    this.anims.createFromAseprite(ASSET_KEYS.CAR);
   }
 }

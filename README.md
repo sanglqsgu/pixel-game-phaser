@@ -264,3 +264,62 @@ Các hệ thống đã được chuẩn bị sẵn:
 * TypeScript Architecture
 
 Nhờ đó lập trình viên có thể tập trung phát triển gameplay thay vì phải xây dựng cấu trúc dự án từ đầu.
+
+# Tạo Animation bằng Aseprite
+
+## 1. Import Sprite Sheet
+
+Import sprite sheet cần tạo animation vào Aseprite.
+
+## 2. Cắt Sprite Sheet
+
+Cắt sprite sheet theo đúng kích thước:
+
+* Width
+* Height
+
+Đảm bảo mỗi frame được cắt khớp với sprite.
+
+## 3. Lọc Frame Không Cần Thiết
+
+Ẩn hoặc xoá các frame không cần dùng trong thanh tab.
+
+Nếu không thấy thanh tab, nhấn phím `Tab` để hiển thị.
+
+## 4. Tạo Animation bằng Tag
+
+Để tạo animation, bắt buộc phải gắn `tag_name`.
+
+Cách thực hiện:
+
+1. Kéo chuột chọn các sprite/frame muốn tạo animation.
+2. Nhấn chuột phải.
+3. Chọn tạo tag.
+4. Đặt tên tag tương ứng cho animation.
+
+Ví dụ:
+
+```text
+idle
+run
+attack
+jump
+```
+
+## 5. Export Sprite Sheet
+
+Export sprite sheet sau khi đã tạo animation.
+
+Vào phần:
+
+```text
+File -> Export Sprite Sheet
+```
+
+Sau đó cấu hình:
+
+```text
+Output -> Set vị trí lưu file
+```
+
+
