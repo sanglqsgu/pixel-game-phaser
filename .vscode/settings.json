@@ -20,5 +20,8 @@
     "Tilemaps",
     "tileset",
     "tweens"
-  ]
+  ],
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
 }

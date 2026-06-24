@@ -613,6 +613,20 @@
                 "to": 15,
                 "direction": "forward",
                 "color": "#000000ff"
+            },
+            {
+                "name": "move-l",
+                "from": 16,
+                "to": 21,
+                "direction": "forward",
+                "color": "#000000ff"
+            },
+            {
+                "name": "move-d",
+                "from": 23,
+                "to": 27,
+                "direction": "forward",
+                "color": "#000000ff"
             }
         ],
         "layers": [

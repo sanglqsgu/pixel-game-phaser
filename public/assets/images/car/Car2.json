@@ -233,7 +233,9 @@
   "scale": "1",
   "frameTags": [
    { "name": "move-r", "from": 4, "to": 9, "direction": "forward", "color": "#000000ff" },
-   { "name": "move-u", "from": 10, "to": 15, "direction": "forward", "color": "#000000ff" }
+   { "name": "move-u", "from": 10, "to": 15, "direction": "forward", "color": "#000000ff" },
+   { "name": "move-l", "from": 16, "to": 21, "direction": "forward", "color": "#000000ff" },
+   { "name": "move-d", "from": 23, "to": 27, "direction": "forward", "color": "#000000ff" }
   ],
   "layers": [
    { "name": "Sprite Sheet", "opacity": 255, "blendMode": "normal" }

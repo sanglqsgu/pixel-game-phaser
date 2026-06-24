@@ -1,18 +1,18 @@
 Intro:
-  ☐ demo game that will be built
-  ☐ project requirements
-  ☐ review project task list
-  ☐ credit for assets used in project
+  ✔ demo game that will be built @done(26-06-24 12:29)
+  ✔ project requirements @done(26-06-24 12:29)
+  ✔ review project task list @done(26-06-24 12:29)
+  ✔ credit for assets used in project @done(26-06-24 12:29)
 
 Project Setup:
-  ☐ download basic project files
-  ☐ download tiled for level editing
-  ☐ install project dependencies
-  ☐ running project on local web server
-  ☐ adding assets to project
+  ✔ download basic project files @done(26-06-24 12:29)
+  ✔ download tiled for level editing @done(26-06-24 12:29)
+  ✔ install project dependencies @done(26-06-24 12:29)
+  ✔ running project on local web server @done(26-06-24 12:29)
+  ✔ adding assets to project @done(26-06-24 12:29)
 
 Player:
-  ☐ create player game object
+  ✔ create player game object @done(26-06-24 12:29)
   ☐ handle player input
   ☐ player movement
   ☐ character state machine

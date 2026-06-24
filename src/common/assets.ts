@@ -57,6 +57,8 @@ export const PLAYER_ANIMATION_KEYS = {
 export const CAR_ANIMATION_KEYS = {
   MOVE_R: 'move-r',
   MOVE_U: 'move-u',
+  MOVE_D: 'move-d',
+  MOVE_L: 'move-l',
 } as const;
 
 export const SPIDER_ANIMATION_KEYS = {
