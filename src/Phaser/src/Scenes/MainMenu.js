@@ -4,8 +4,31 @@ import {
   getDimensions,
   getGamemodeInfo
 } from '../Game/gameSettings';
-import { BLACK, GOLD, GRAY, WHITE } from '../Common/colours';
+import { BLACK, BLUE, GOLD } from '../Common/colours';
 import { GESTURES, gestureDetection } from '../Game/gestures';
+import {
+  loadTiledBackground,
+  createTiledBackground
+} from '../Game/tiledBackground';
+
+// Pixel font loaded from Google Fonts in public/index.html. We add a
+// solid stroke and a soft shadow so the text pops against the map
+// background, and we keep the body color so text reads on any backdrop.
+const PIXEL_FONT = '"Press Start 2P", monospace';
+const pixelTextStyle = {
+  fontFamily: PIXEL_FONT,
+  fontSize: '32px',
+  color: GOLD,
+  stroke: BLACK,
+  strokeThickness: 6,
+  shadow: {
+    offsetX: 3,
+    offsetY: 3,
+    color: BLACK,
+    blur: 0,
+    fill: true
+  }
+};
 
 export default class MainMenu extends Phaser.Scene {
   constructor() {
@@ -18,14 +41,14 @@ export default class MainMenu extends Phaser.Scene {
   }
 
   preload() {
-    this.load.setBaseURL(
-      'https://raw.githubusercontent.com/wjxhenry/website/master'
-    );
-    // Load assets...
+    // Assets placed under `public/` are served at the root URL of the dev
+    // server by Create React App. No setBaseURL override is needed for the
+    // tiled background, so we just queue it directly.
+    loadTiledBackground(this);
   }
 
   create() {
-    this.cameras.main.setBackgroundColor(WHITE);
+    this.cameras.main.setBackgroundColor(BLACK);
     this.keys = this.input.keyboard.addKeys({
       up: 'W',
       arrowUp: 'up',
@@ -42,56 +65,73 @@ export default class MainMenu extends Phaser.Scene {
     this.doubleTapTimer = 0;
     this.doubleTapCooldown = 200; // 200 milliseconds between each tap
 
-    let title = this.add.text(
+    // Tiled background layers (loaded once in BootScene)
+    createTiledBackground(this);
+
+    // Title - split into two lines so "Cùng JETBOT" sits on its own
+    // row, and tint the second line GOLD so it pops against the first.
+    let titleLine1 = this.add.text(
       this.gameDimensions.screenCenter,
-      this.gameDimensions.screenSpaceUnit * 4,
-      'Yet Another Maze',
+      this.gameDimensions.screenSpaceUnit * 3,
+      'Vượt mê cung',
       {
-        fontFamily: 'Ubuntu',
-        fill: BLACK,
-        fontSize: this.gameDimensions.textSize2
+        ...pixelTextStyle,
+        fontSize: '30px',
+        color: BLUE
       }
     );
-    title.setOrigin(0.5, 0.5);
+    titleLine1.setOrigin(0.5, 0.5);
+
+    let titleLine2 = this.add.text(
+      this.gameDimensions.screenCenter,
+      this.gameDimensions.screenSpaceUnit * 5,
+      'cùng JETBOT',
+      {
+        ...pixelTextStyle,
+        fontSize: '24px',
+        color: BLUE
+      }
+    );
+    titleLine2.setOrigin(0.5, 0.5);
+
+    // Menu options - slightly smaller than the title, gold by default
+    const optionStyle = {
+      ...pixelTextStyle,
+      fontSize: '20px',
+      color: GOLD
+    };
+
     let startGame = this.add.text(
       this.gameDimensions.screenCenter,
-      this.gameDimensions.screenSpaceUnit * 8,
+      this.gameDimensions.screenSpaceUnit * 9,
       'Start Game',
-      {
-        fontFamily: 'Ubuntu',
-        fill: GOLD,
-        fontSize: this.gameDimensions.textSize3
-      }
+      optionStyle
     );
     startGame.setOrigin(0.5, 0.5);
+
     let settings = this.add.text(
       this.gameDimensions.screenCenter,
       this.gameDimensions.screenSpaceUnit * 12,
       'Settings',
-      {
-        fontFamily: 'Ubuntu',
-        fill: BLACK,
-        fontSize: this.gameDimensions.textSize3
-      }
+      optionStyle
     );
     settings.setOrigin(0.5, 0.5);
-    let exit = this.add.text(
-      this.gameDimensions.screenCenter,
-      this.gameDimensions.screenSpaceUnit * 16,
-      'Exit',
-      {
-        fontFamily: 'Ubuntu',
-        fill: GRAY,
-        fontSize: this.gameDimensions.textSize3
-      }
-    );
-    exit.setOrigin(0.5, 0.5);
 
     this.options = [
-      { text: startGame, scene: getGamemodeInfo(this.settings.gameMode).scene },
-      { text: settings, scene: 'Settings' }
+      {
+        text: startGame,
+        scene: getGamemodeInfo(this.settings.gameMode).scene,
+        defaultColor: '#c97a00'
+      },
+      { text: settings, scene: 'Settings', defaultColor: '#c97a00' }
       // { text: exit, scene: 'Null' }
     ];
+
+    // Make sure only the currently selected option glows gold; the rest
+    // use the dimmer default color so the highlight is obvious.
+    this.options.forEach((opt, idx) => {
+      opt.text.setColor(idx === this.choice ? GOLD : opt.defaultColor);
+    });
   }
 
   handleGesture(detection) {
@@ -128,8 +168,10 @@ export default class MainMenu extends Phaser.Scene {
   updateChoice(direction) {
     let newChoice = this.choice + direction;
     if (newChoice > -1 && newChoice < this.options.length) {
-      this.options[this.choice].text.setFill(BLACK);
-      this.options[newChoice].text.setFill(GOLD);
+      this.options[this.choice].text.setColor(
+        this.options[this.choice].defaultColor
+      );
+      this.options[newChoice].text.setColor(GOLD);
       this.choice = newChoice;
     }
   }

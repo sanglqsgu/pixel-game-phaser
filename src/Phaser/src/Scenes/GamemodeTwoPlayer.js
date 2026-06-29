@@ -1,9 +1,17 @@
 import Phaser from 'phaser';
-import { BLACK_0x, BLUE_0x, GREEN_0x, BLUE, GREEN } from '../Common/colours';
+import { BLUE_0x, GREEN_0x, BLUE, GREEN } from '../Common/colours';
 import GameMaze from '../Game/gameMaze';
 import Character from '../Game/character';
 import { GESTURES, gestureDetection } from '../Game/gestures';
 import { GAMEMODES } from '../Game/gameSettings';
+import {
+  loadRandomImages,
+  placeRandomImages,
+  buildObstacleMap,
+  removeObstacleAt,
+  getObstacleCount
+} from '../Game/randomImages';
+import { createHud, updateHud, destroyHud } from '../Game/gameHud';
 
 export default class GamemodeTwoPlayer extends Phaser.Scene {
   constructor() {
@@ -15,15 +23,15 @@ export default class GamemodeTwoPlayer extends Phaser.Scene {
     this.handleGesture = this.handleGesture.bind(this);
     this.p1ActionClock = 0;
     this.p2ActionClock = 0;
-    this.actionCooldown = 100; // Time in milliseconds
+    this.actionCooldown = 100;
   }
 
   preload() {
-    // Load assets...
+    loadRandomImages(this);
   }
 
   create() {
-    this.cameras.main.setBackgroundColor(BLACK_0x);
+    this.cameras.main.setBackgroundColor(BLUE_0x);
     this.keys = this.input.keyboard.addKeys({
       p1Up: 'up',
       p2Up: 'W',
@@ -43,7 +51,6 @@ export default class GamemodeTwoPlayer extends Phaser.Scene {
     this.maze = new GameMaze(this.game, this.graphics, this.settings.gridSize);
 
     let positions = this.generateRandomPositions();
-
     let p1InitialPosition = positions.p1;
     let p2InitialPosition = positions.p2;
     this.p1EndPoint = positions.p2;
@@ -59,55 +66,57 @@ export default class GamemodeTwoPlayer extends Phaser.Scene {
     });
 
     this.maze.drawMaze();
-
-    // Draw the players
     this.player1.drawCharacter();
     this.player2.drawCharacter();
 
+    this.obstacles = placeRandomImages(this, this.graphics, this.maze, {
+      excludePositions: [p1InitialPosition, p2InitialPosition]
+    });
+    this.obstacleMap = buildObstacleMap(this.obstacles);
+
+    this.totalObstacles = getObstacleCount(this.obstacleMap);
+    this.remainingObstacles = this.totalObstacles;
+    this.hud = createHud(this, this.totalObstacles);
+
     this.timer = new Date().getTime();
+  }
+
+  updateLogo() {
+    this.remainingObstacles = getObstacleCount(this.obstacleMap);
+    if (this.hud) {
+      const remaining = this.remainingObstacles;
+      updateHud(this.hud, {
+        logo: `Logo: ${remaining}/${this.totalObstacles}`
+      });
+    }
+  }
+
+  remindCollectAll() {
+    if (this.hud) {
+      const remaining = getObstacleCount(this.obstacleMap);
+      updateHud(this.hud, {
+        logo: `Logo: ${remaining}/${this.totalObstacles} - Collect all to finish!`
+      });
+    }
   }
 
   generateRandomPositions() {
     let furthestPoint = this.settings.gridSize - 1;
     let position1 = {
-      p1: {
-        x: 0,
-        y: 0
-      },
-      p2: {
-        x: furthestPoint,
-        y: furthestPoint
-      }
+      p1: { x: 0, y: 0 },
+      p2: { x: furthestPoint, y: furthestPoint }
     };
     let position2 = {
-      p1: {
-        x: furthestPoint,
-        y: 0
-      },
-      p2: {
-        x: 0,
-        y: furthestPoint
-      }
+      p1: { x: furthestPoint, y: 0 },
+      p2: { x: 0, y: furthestPoint }
     };
     let position3 = {
-      p1: {
-        x: 0,
-        y: furthestPoint
-      },
-      p2: {
-        x: furthestPoint,
-        y: 0
-      }
+      p1: { x: 0, y: furthestPoint },
+      p2: { x: furthestPoint, y: 0 }
     };
     let position4 = {
-      p1: {
-        x: furthestPoint,
-        y: furthestPoint
-      },
-      p2: {
-        x: 0,
-        y: 0
-      }
+      p1: { x: furthestPoint, y: furthestPoint },
+      p2: { x: 0, y: 0 }
     };
     let positions = [position1, position2, position3, position4];
     return positions[Math.floor(Math.random() * 4)];
@@ -142,13 +151,19 @@ export default class GamemodeTwoPlayer extends Phaser.Scene {
   }
 
   p1UpdateMovement(direction) {
-    // Move the character
     this.player1.moveCharacter(direction);
-    // Check if player is in the finish position, if yes, finish game
+    if (removeObstacleAt(this.player1.position, this.obstacleMap)) {
+      this.maze.fillGrid(this.player1.position, this.maze.colour);
+      this.updateLogo();
+    }
     if (
       this.player1.position.x === this.p1EndPoint.x &&
       this.player1.position.y === this.p1EndPoint.y
     ) {
+      if (getObstacleCount(this.obstacleMap) > 0) {
+        this.remindCollectAll();
+        return;
+      }
       this.scene.start('EndScreen', {
         settings: this.settings,
         results: {
@@ -161,13 +176,19 @@ export default class GamemodeTwoPlayer extends Phaser.Scene {
   }
 
   p2UpdateMovement(direction) {
-    // Move the character
     this.player2.moveCharacter(direction);
-    // Check if player is in the finish position, if yes, finish game
+    if (removeObstacleAt(this.player2.position, this.obstacleMap)) {
+      this.maze.fillGrid(this.player2.position, this.maze.colour);
+      this.updateLogo();
+    }
     if (
       this.player2.position.x === this.p2EndPoint.x &&
       this.player2.position.y === this.p2EndPoint.y
     ) {
+      if (getObstacleCount(this.obstacleMap) > 0) {
+        this.remindCollectAll();
+        return;
+      }
       this.scene.start('EndScreen', {
         settings: this.settings,
         results: {
@@ -221,7 +242,6 @@ export default class GamemodeTwoPlayer extends Phaser.Scene {
     this.player1.update();
     this.player2.update();
     if (!this.player1.isUpdating()) {
-      // Redraw the endpoints in case players moved over them
       this.maze.fillGrid(this.p2EndPoint, GREEN_0x);
       this.player1.drawCharacter();
     }
@@ -229,5 +249,14 @@ export default class GamemodeTwoPlayer extends Phaser.Scene {
       this.maze.fillGrid(this.p1EndPoint, BLUE_0x);
       this.player2.drawCharacter();
     }
+
+    if (this.hud) {
+      const elapsed = Math.floor((new Date().getTime() - this.timer) / 1000);
+      updateHud(this.hud, { timer: `Time: ${elapsed}s` });
+    }
+  }
+
+  shutdown() {
+    destroyHud();
   }
 }

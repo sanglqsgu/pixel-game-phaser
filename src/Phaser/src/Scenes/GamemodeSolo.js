@@ -4,6 +4,14 @@ import GameMaze from '../Game/gameMaze';
 import Character from '../Game/character';
 import { GESTURES, gestureDetection } from '../Game/gestures';
 import { GAMEMODES } from '../Game/gameSettings';
+import {
+  loadRandomImages,
+  placeRandomImages,
+  buildObstacleMap,
+  removeObstacleAt,
+  getObstacleCount
+} from '../Game/randomImages';
+import { createHud, updateHud, destroyHud } from '../Game/gameHud';
 
 export default class GamemodeSolo extends Phaser.Scene {
   constructor() {
@@ -14,11 +22,11 @@ export default class GamemodeSolo extends Phaser.Scene {
     this.settings = data;
     this.handleGesture = this.handleGesture.bind(this);
     this.actionClock = 0;
-    this.actionCooldown = 100; // Time in milliseconds
+    this.actionCooldown = 100;
   }
 
   preload() {
-    // Load assets...
+    loadRandomImages(this);
   }
 
   create() {
@@ -40,10 +48,7 @@ export default class GamemodeSolo extends Phaser.Scene {
 
     this.maze = new GameMaze(this.game, this.graphics, this.settings.gridSize);
 
-    let initialPosition = {
-      x: 0,
-      y: 0
-    };
+    let initialPosition = { x: 0, y: 0 };
     this.character = new Character(this.maze, initialPosition, {
       smoothMovement: true
     });
@@ -54,14 +59,28 @@ export default class GamemodeSolo extends Phaser.Scene {
     };
 
     this.maze.drawMaze();
-
-    // Draw the endpoint
     this.maze.fillGrid(this.endPoint, GRAY_0x);
-
-    // Draw the player
     this.character.drawCharacter();
 
+    this.obstacles = placeRandomImages(this, this.graphics, this.maze, {
+      excludePositions: [initialPosition, this.endPoint]
+    });
+    this.obstacleMap = buildObstacleMap(this.obstacles);
+
+    this.totalObstacles = getObstacleCount(this.obstacleMap);
+    this.remainingObstacles = this.totalObstacles;
+    this.hud = createHud(this, this.totalObstacles);
+
     this.timer = new Date().getTime();
+  }
+
+  updateLogo() {
+    this.remainingObstacles = getObstacleCount(this.obstacleMap);
+    if (this.hud) {
+      updateHud(this.hud, {
+        logo: `Logo: ${this.remainingObstacles}/${this.totalObstacles}`
+      });
+    }
   }
 
   handleGesture(detection) {
@@ -77,13 +96,24 @@ export default class GamemodeSolo extends Phaser.Scene {
   }
 
   updateMovement(direction) {
-    // Move the character
     this.character.moveCharacter(direction);
-    // Check if player is in the finish position, if yes, finish game
+    if (removeObstacleAt(this.character.position, this.obstacleMap)) {
+      this.maze.fillGrid(this.character.position, this.maze.colour);
+      this.updateLogo();
+    }
     if (
       this.character.position.x === this.endPoint.x &&
       this.character.position.y === this.endPoint.y
     ) {
+      if (getObstacleCount(this.obstacleMap) > 0) {
+        if (this.hud) {
+          const remaining = getObstacleCount(this.obstacleMap);
+          updateHud(this.hud, {
+            logo: `Logo: ${remaining}/${this.totalObstacles} - Collect all to finish!`
+          });
+        }
+        return;
+      }
       let finishTime = Math.floor((new Date().getTime() - this.timer) / 1000);
       this.scene.start('EndScreen', {
         settings: this.settings,
@@ -118,5 +148,21 @@ export default class GamemodeSolo extends Phaser.Scene {
     }
 
     this.character.update();
+
+    if (
+      this.character.position.x !== this.endPoint.x ||
+      this.character.position.y !== this.endPoint.y
+    ) {
+      this.maze.fillGrid(this.endPoint, GRAY_0x);
+    }
+
+    if (this.hud) {
+      const elapsed = Math.floor((new Date().getTime() - this.timer) / 1000);
+      updateHud(this.hud, { timer: `Time: ${elapsed}s` });
+    }
+  }
+
+  shutdown() {
+    destroyHud();
   }
 }
