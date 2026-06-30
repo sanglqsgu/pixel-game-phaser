@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import { getDimensions } from '../Game/gameSettings';
-import { BLACK, WHITE } from '../Common/colours';
+import { COLORS, FONT } from '../Common/tokens';
 import { GESTURES, gestureDetection } from '../Game/gestures';
+import { destroyHud } from '../Game/gameHud';
 
 export default class EndScreen extends Phaser.Scene {
   constructor() {
@@ -15,9 +16,9 @@ export default class EndScreen extends Phaser.Scene {
   }
 
   create() {
-    this.cameras.main.setBackgroundColor(WHITE);
+    this.cameras.main.setBackgroundColor(COLORS.BG_SECONDARY);
     this.keys = this.input.keyboard.addKeys({
-      continue: 'Enter'
+      back: 'Esc',
     });
     gestureDetection(this.input, this.handleGesture);
 
@@ -27,52 +28,87 @@ export default class EndScreen extends Phaser.Scene {
   }
 
   drawScreen() {
-    let gameOver = this.add.text(
-      this.gameDimensions.screenCenter,
-      this.gameDimensions.screenSpaceUnit * 4,
-      'Game Over',
-      {
-        fontFamily: 'Ubuntu',
-        fill: BLACK,
-        fontSize: this.gameDimensions.textSize1
-      }
-    );
-    gameOver.setOrigin(0.5, 0.5);
+    const centerX = this.gameDimensions.screenCenter;
+    const unit = this.gameDimensions.screenSpaceUnit;
 
-    let message = this.add.text(
-      this.gameDimensions.screenCenter,
-      this.gameDimensions.screenSpaceUnit * 9,
-      this.results.message,
-      {
-        fontFamily: 'Ubuntu',
-        fill: this.results.messageColour,
-        fontSize: this.gameDimensions.textSize2
-      }
-    );
-    message.setOrigin(0.5, 0.5);
+    this.add
+      .text(centerX, unit * 1.5, 'Hoàn thành!', {
+        fontFamily: FONT.UI_TEXT,
+        fill: COLORS.BG_PRIMARY,
+        fontSize: this.gameDimensions.textSize1,
+      })
+      .setOrigin(0.5, 0.5);
 
-    let returnScreen = this.add.text(
-      this.gameDimensions.screenCenter,
-      this.gameDimensions.screenSpaceUnit * 15,
-      'Press enter to exit to menu.',
-      {
-        fontFamily: 'Ubuntu',
-        fill: BLACK,
-        fontSize: this.gameDimensions.textSize4
-      }
-    );
-    returnScreen.setOrigin(0.5, 0.5);
+    this.add
+      .text(centerX, unit * 3, `Tổng thời gian: ${this.results.totalTime}s`, {
+        fontFamily: FONT.UI_TEXT,
+        fill: COLORS.BG_PRIMARY,
+        fontSize: this.gameDimensions.textSize2,
+      })
+      .setOrigin(0.5, 0.5);
+
+    const perLevel = this.results.perLevel || [];
+    const startY = unit * 5.5;
+    const rowH = unit * 2;
+
+    this.add
+      .text(centerX, startY - unit * 1, 'Màn   Lưới   Thời gian   Vật phẩm', {
+        fontFamily: FONT.UI_TEXT,
+        fill: COLORS.TEXT_DIM,
+        fontSize: this.gameDimensions.textSize4,
+      })
+      .setOrigin(0.5, 0.5);
+
+    perLevel.forEach((lvl, i) => {
+      const y = startY + i * rowH;
+      this.add
+        .text(
+          centerX,
+          y,
+          `${lvl.level}       ${lvl.gridSize}×${lvl.gridSize}          ${lvl.time}s               ${lvl.items.length}/5`,
+          {
+            fontFamily: FONT.UI_TEXT,
+            fill: COLORS.BG_PRIMARY,
+            fontSize: this.gameDimensions.textSize4,
+          }
+        )
+        .setOrigin(0.5, 0.5);
+    });
+
+    const btnY = unit * 17;
+    const btnW = unit * 5;
+    const btnH = unit * 1.8;
+
+    const menuBg = this.add
+      .rectangle(centerX, btnY, btnW, btnH, COLORS.BG_PRIMARY)
+      .setInteractive({ useHandCursor: true });
+    this.add
+      .text(centerX, btnY, 'Về menu', {
+        fontFamily: FONT.UI_TEXT,
+        fill: COLORS.BG_SECONDARY,
+        fontSize: this.gameDimensions.textSize4,
+      })
+      .setOrigin(0.5, 0.5);
+    menuBg.on('pointerdown', () => this._endGame());
+  }
+
+  _endGame() {
+    this.scene.start('MainMenu', this.settings);
   }
 
   handleGesture(detection) {
     if (detection.gesture === GESTURES.SINGLE_TAP) {
-      this.scene.start('MainMenu', this.settings);
+      this._endGame();
     }
   }
 
   update() {
-    if (Phaser.Input.Keyboard.JustDown(this.keys.continue)) {
-      this.scene.start('MainMenu', this.settings);
+    if (Phaser.Input.Keyboard.JustDown(this.keys.back)) {
+      this._endGame();
     }
+  }
+
+  shutdown() {
+    destroyHud();
   }
 }

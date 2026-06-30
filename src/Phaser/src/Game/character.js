@@ -1,43 +1,55 @@
 import { GOLD_0x } from '../Common/colours';
 
-/**
- * @typedef {Object} Position - The x and y coordinates
- * @property {Number} x - The x coordinate
- * @property {Number} y - The y coordinate
- */
-
-/**
- * @typedef {Object} Direction
- * @property {Number} UP - Up
- * @property {Number} DOWN - Down
- * @property {Number} LEFT - Left
- * @property {Number} RIGHT - Right
- */
-
 const DIRECTIONS = {
   UP: 0,
   DOWN: 1,
   LEFT: 2,
-  RIGHT: 3
+  RIGHT: 3,
 };
 
-/**
- * The default number of intermediate steps (frames) between character movement
- */
+const ANIM_SUFFIX = {
+  [DIRECTIONS.UP]: '-move-u',
+  [DIRECTIONS.DOWN]: '-move-d',
+  [DIRECTIONS.LEFT]: '-move-l',
+  [DIRECTIONS.RIGHT]: '-move-r',
+};
+
+const IDLE_FRAME = {
+  [DIRECTIONS.UP]: 10,
+  [DIRECTIONS.DOWN]: 23,
+  [DIRECTIONS.LEFT]: 16,
+  [DIRECTIONS.RIGHT]: 4,
+};
+
+const FRAME_OFFSET = {
+  [DIRECTIONS.UP]: { x: 0, y: 0 },
+  [DIRECTIONS.DOWN]: { x: 0, y: 0 },
+  [DIRECTIONS.LEFT]: { x: 0, y: 0 },
+  [DIRECTIONS.RIGHT]: { x: 0, y: 0 },
+};
+
 const DEFAULT_UPDATE_STEPS = 5;
 
+export function setupCarAnimations(scene, animPrefix = 'car') {
+  const anims = [
+    { key: animPrefix + '-move-r', start: 4, end: 9 },
+    { key: animPrefix + '-move-u', start: 10, end: 15 },
+    { key: animPrefix + '-move-l', start: 16, end: 21 },
+    { key: animPrefix + '-move-d', start: 23, end: 27 },
+  ];
+  anims.forEach(({ key, start, end }) => {
+    if (!scene.anims.exists(key)) {
+      scene.anims.create({
+        key,
+        frames: scene.anims.generateFrameNumbers(animPrefix, { start, end }),
+        frameRate: 10,
+        repeat: -1,
+      });
+    }
+  });
+}
+
 export default class Character {
-  /**
-   * Constructor
-   * @param {GameMaze} maze - An instance of the GameMaze object
-   * @param {Object} position - The initial position of the character
-   * @param {Number} position.x - The x coordinate of the character
-   * @param {Number} position.y - The y coordinate of the character
-   * @param {Object} [options]
-   * @param {String} [options.colour] - The hexadecimal colour of the character (defaults to gold)
-   * @param {Number} [options.updateSteps] - The number of intermediate steps (frames) between character movement (default: 5)
-   * @param {Boolean} [options.smoothMovement] - The flag to allow for smooth movement (default: false)
-   */
   constructor(maze, position, options = {}) {
     this.maze = maze;
     this.position = position;
@@ -47,140 +59,126 @@ export default class Character {
     this.UPDATE_STEPS = options.updateSteps || DEFAULT_UPDATE_STEPS;
     this.updating = false;
     this.updateStep = 0;
+    this.scene = options.scene;
+    this.imageKey = options.imageKey || 'car';
+    this.animKey = options.animKey || this.imageKey;
+    this.scaleFactor = options.scaleFactor || 0.85;
+    this.currentDirection = DIRECTIONS.RIGHT;
+    this.sprite = null;
   }
 
   static get DIRECTIONS() {
     return DIRECTIONS;
   }
 
-  /**
-   * Draw the character at its current position
-   */
-  drawCharacter() {
-    this.maze.fillGrid(this.position, this.colour);
+  _cellCenter(pos) {
+    return {
+      x: pos.x * this.maze.sideLength + this.maze.sideLength / 2 + 1,
+      y: pos.y * this.maze.sideLength + this.maze.sideLength / 2 + 1,
+    };
   }
 
-  /**
-   * Moves the character in the specified direction if possible
-   * @param {Direction} direction - The direction to move
-   */
-  moveCharacter(direction) {
-    // If the chracter is currently updating, ignore the move command
-    if (this.updating) {
-      return;
+  drawCharacter() {
+    if (!this.sprite && this.scene) {
+      const c = this._applyOffset(this._cellCenter(this.position));
+      this.scene.textures.get(this.imageKey).setFilter(1);
+      this.sprite = this.scene.add.sprite(c.x, c.y, this.imageKey);
+      this.sprite.setFrame(IDLE_FRAME[this.currentDirection]);
+      const cellSize = this.maze.sideLength - 2;
+      const scale = (cellSize / this.sprite.width) * this.scaleFactor;
+      this.sprite.setScale(scale);
+      this.sprite.setDepth(1000);
+      if (this.colour !== GOLD_0x) {
+        this.sprite.setTint(parseInt(this.colour, 16));
+      }
     }
-    // Return the current character position
+  }
+
+  moveCharacter(direction) {
+    if (this.updating) return;
     let prevPos = { ...this.position };
     let newPos = { ...this.position };
     if (direction === DIRECTIONS.UP) {
       newPos.y -= 1;
-      if (newPos.y < 0) {
-        newPos.y = 0;
-      }
+      if (newPos.y < 0) newPos.y = 0;
     } else if (direction === DIRECTIONS.DOWN) {
       newPos.y += 1;
-      if (newPos.y > this.maze.size - 1) {
-        newPos.y = this.maze.size - 1;
-      }
+      if (newPos.y > this.maze.size - 1) newPos.y = this.maze.size - 1;
     } else if (direction === DIRECTIONS.LEFT) {
       newPos.x -= 1;
-      if (newPos.x < 0) {
-        newPos.x = 0;
-      }
+      if (newPos.x < 0) newPos.x = 0;
     } else if (direction === DIRECTIONS.RIGHT) {
       newPos.x += 1;
-      if (newPos.x > this.maze.size - 1) {
-        newPos.x = this.maze.size - 1;
-      }
+      if (newPos.x > this.maze.size - 1) newPos.x = this.maze.size - 1;
     }
     if (
       this.maze.isEdge([`${prevPos.x},${prevPos.y}`, `${newPos.x},${newPos.y}`])
     ) {
-      // Update the positions
+      this.maze.fillGrid(this.prevPos, this.maze.colour);
       this.position = newPos;
       this.prevPos = prevPos;
+      this.currentDirection = direction;
       if (this.smoothMovement) {
-        // Set the flag to update the player movement
         this.updating = true;
+        this._playDirectionAnim(direction);
       } else {
-        this.maze.fillGrid(this.prevPos, this.maze.colour);
-        this.maze.fillGrid(this.position, this.colour);
+        this._updateSpritePosition();
       }
     }
   }
 
-  /**
-   * This function should always be called in the Scene's update function
-   */
-  update() {
-    if (this.updating) {
-      this._smoothMovement(this.prevPos, this.position);
+  _playDirectionAnim(direction) {
+    if (this.sprite && this.scene) {
+      const key = this.animKey + ANIM_SUFFIX[direction];
+      if (this.scene.anims.exists(key)) {
+        this.sprite.play(key);
+      }
     }
   }
 
-  /**
-   * Returns whether or not the character is updating
-   * @returns {Boolean}
-   */
+  update() {
+    if (this.updating) {
+      this._smoothMovement();
+    }
+  }
+
   isUpdating() {
     return this.updating;
   }
 
-  /**
-   * This function is called internally to draw the intermediate steps of the character movement
-   */
+  _applyOffset(c) {
+    const offset = FRAME_OFFSET[this.currentDirection];
+    return { x: c.x + offset.x, y: c.y + offset.y };
+  }
+
+  _updateSpritePosition() {
+    if (this.sprite) {
+      const c = this._applyOffset(this._cellCenter(this.position));
+      this.sprite.setPosition(c.x, c.y);
+    }
+  }
+
   _smoothMovement() {
-    let diffX = Math.round(this.position.x - this.prevPos.x);
-    let diffY = Math.round(this.position.y - this.prevPos.y);
-    if (diffX !== 0) {
-      // Calculating the intermediate steps...
-      let interFrom = {
-        ...this.prevPos,
-        x:
-          Math.round(
-            (this.prevPos.x +
-              (1 / this.UPDATE_STEPS) * this.updateStep * diffX) *
-              10
-          ) / 10
-      };
-      let interTo = {
-        ...this.prevPos,
-        x:
-          Math.round(
-            (this.prevPos.x +
-              (1 / this.UPDATE_STEPS) * (this.updateStep + 1) * diffX) *
-              10
-          ) / 10
-      };
-      this.maze.fillGrid(interFrom, this.maze.colour);
-      this.maze.fillGrid(interTo, this.colour);
-    } else {
-      let interFrom = {
-        ...this.prevPos,
-        y:
-          Math.round(
-            (this.prevPos.y +
-              (1 / this.UPDATE_STEPS) * this.updateStep * diffY) *
-              10
-          ) / 10
-      };
-      let interTo = {
-        ...this.prevPos,
-        y:
-          Math.round(
-            (this.prevPos.y +
-              (1 / this.UPDATE_STEPS) * (this.updateStep + 1) * diffY) *
-              10
-          ) / 10
-      };
-      this.maze.fillGrid(interFrom, this.maze.colour);
-      this.maze.fillGrid(interTo, this.colour);
+    const diffX = this.position.x - this.prevPos.x;
+    const diffY = this.position.y - this.prevPos.y;
+    const t = this.updateStep / this.UPDATE_STEPS;
+
+    const curX = this.prevPos.x + diffX * t;
+    const curY = this.prevPos.y + diffY * t;
+
+    if (this.sprite) {
+      const c = this._applyOffset(this._cellCenter({ x: curX, y: curY }));
+      this.sprite.setPosition(c.x, c.y);
     }
 
     this.updateStep++;
     if (this.updateStep % this.UPDATE_STEPS === 0) {
       this.updateStep = 0;
       this.updating = false;
+      if (this.sprite) {
+        this.sprite.anims.stop();
+        this.sprite.setFrame(IDLE_FRAME[this.currentDirection]);
+      }
     }
   }
 }

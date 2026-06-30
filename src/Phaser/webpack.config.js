@@ -5,7 +5,7 @@ module.exports = {
   output: {
     path: path.resolve(__dirname, './dist'),
     filename: 'phaser-maze-game.js',
-    libraryTarget: 'commonjs2'
+    libraryTarget: 'commonjs2',
   },
   module: {
     rules: [
@@ -17,15 +17,15 @@ module.exports = {
           {
             loader: 'babel-loader',
             options: {
-              presets: ['@babel/react', '@babel/env']
-            }
-          }
-        ]
-      }
-    ]
+              presets: ['@babel/react', '@babel/env'],
+            },
+          },
+        ],
+      },
+    ],
   },
   externals: {
     react: 'commonjs react',
-    phaser: 'phaser'
-  }
+    phaser: 'phaser',
+  },
 };

@@ -1,15 +1,16 @@
 import Phaser from 'phaser';
-import { BLACK_0x, GRAY_0x, BLACK } from '../Common/colours';
+import { COLORS_0x, COLORS } from '../Common/tokens';
 import GameMaze from '../Game/gameMaze';
-import Character from '../Game/character';
+import Character, { setupCarAnimations } from '../Game/character';
 import { GESTURES, gestureDetection } from '../Game/gestures';
 import { GAMEMODES } from '../Game/gameSettings';
+import { saveGameResult } from '../Game/gameHistory';
 import {
   loadRandomImages,
   placeRandomImages,
   buildObstacleMap,
   removeObstacleAt,
-  getObstacleCount
+  getObstacleCount,
 } from '../Game/randomImages';
 import { createHud, updateHud, destroyHud } from '../Game/gameHud';
 
@@ -20,6 +21,9 @@ export default class GamemodeSolo extends Phaser.Scene {
 
   init(data) {
     this.settings = data;
+    if (!this.settings.results) {
+      this.settings.results = { perLevel: [] };
+    }
     this.handleGesture = this.handleGesture.bind(this);
     this.actionClock = 0;
     this.actionCooldown = 100;
@@ -27,10 +31,16 @@ export default class GamemodeSolo extends Phaser.Scene {
 
   preload() {
     loadRandomImages(this);
+    const baseUrl = process.env.PUBLIC_URL || '';
+    this.load.spritesheet('car', `${baseUrl}/assets/object/car/Car2.png`, {
+      frameWidth: 80,
+      frameHeight: 80,
+    });
   }
 
   create() {
-    this.cameras.main.setBackgroundColor(BLACK_0x);
+    setupCarAnimations(this);
+    this.cameras.main.setBackgroundColor(COLORS_0x.BG_PRIMARY);
     this.keys = this.input.keyboard.addKeys({
       up: 'W',
       arrowUp: 'up',
@@ -40,35 +50,37 @@ export default class GamemodeSolo extends Phaser.Scene {
       arrowLeft: 'left',
       right: 'D',
       arrowRight: 'right',
-      exit: 'Esc'
+      exit: 'Esc',
     });
     gestureDetection(this.input, this.handleGesture);
 
     this.graphics = this.add.graphics();
-
     this.maze = new GameMaze(this.game, this.graphics, this.settings.gridSize);
 
     let initialPosition = { x: 0, y: 0 };
     this.character = new Character(this.maze, initialPosition, {
-      smoothMovement: true
+      smoothMovement: true,
+      scene: this,
+      imageKey: 'car',
     });
 
     this.endPoint = {
       x: this.settings.gridSize - 1,
-      y: this.settings.gridSize - 1
+      y: this.settings.gridSize - 1,
     };
 
     this.maze.drawMaze();
-    this.maze.fillGrid(this.endPoint, GRAY_0x);
+    this.maze.fillGrid(this.endPoint, COLORS_0x.MAZE_END);
     this.character.drawCharacter();
 
     this.obstacles = placeRandomImages(this, this.graphics, this.maze, {
-      excludePositions: [initialPosition, this.endPoint]
+      excludePositions: [initialPosition, this.endPoint],
     });
     this.obstacleMap = buildObstacleMap(this.obstacles);
 
     this.totalObstacles = getObstacleCount(this.obstacleMap);
     this.remainingObstacles = this.totalObstacles;
+    this.collectedItems = [];
     this.hud = createHud(this, this.totalObstacles);
 
     this.timer = new Date().getTime();
@@ -78,7 +90,7 @@ export default class GamemodeSolo extends Phaser.Scene {
     this.remainingObstacles = getObstacleCount(this.obstacleMap);
     if (this.hud) {
       updateHud(this.hud, {
-        logo: `Logo: ${this.remainingObstacles}/${this.totalObstacles}`
+        logo: `Logo: ${this.remainingObstacles}/${this.totalObstacles}`,
       });
     }
   }
@@ -97,7 +109,9 @@ export default class GamemodeSolo extends Phaser.Scene {
 
   updateMovement(direction) {
     this.character.moveCharacter(direction);
-    if (removeObstacleAt(this.character.position, this.obstacleMap)) {
+    const removedKey = removeObstacleAt(this.character.position, this.obstacleMap);
+    if (removedKey) {
+      this.collectedItems.push(removedKey);
       this.maze.fillGrid(this.character.position, this.maze.colour);
       this.updateLogo();
     }
@@ -109,20 +123,48 @@ export default class GamemodeSolo extends Phaser.Scene {
         if (this.hud) {
           const remaining = getObstacleCount(this.obstacleMap);
           updateHud(this.hud, {
-            logo: `Logo: ${remaining}/${this.totalObstacles} - Collect all to finish!`
+            logo: `Logo: ${remaining}/${this.totalObstacles} - Collect all to finish!`,
           });
         }
         return;
       }
       let finishTime = Math.floor((new Date().getTime() - this.timer) / 1000);
-      this.scene.start('EndScreen', {
-        settings: this.settings,
-        results: {
-          gameMode: GAMEMODES.SOLO.id,
-          message: `Time: ${finishTime} s`,
-          messageColour: BLACK
-        }
+      const levelResult = {
+        level: this.settings.level,
+        gridSize: this.settings.gridSize,
+        time: finishTime,
+        items: [...this.collectedItems],
+      };
+      this.settings.results.perLevel.push(levelResult);
+
+      const totalTime = this.settings.results.perLevel.reduce(
+        (sum, l) => sum + l.time,
+        0
+      );
+      saveGameResult({
+        level: this.settings.level,
+        totalTime: totalTime,
+        levelResults: this.settings.results.perLevel,
       });
+
+      if (this.settings.level >= this.settings.totalLevels) {
+        this.scene.start('EndScreen', {
+          settings: this.settings,
+          results: {
+            gameMode: GAMEMODES.SOLO.id,
+            message: `Level ${this.settings.level} - ${finishTime}s`,
+            messageColour: COLORS.BG_PRIMARY,
+            collectedItems: this.collectedItems,
+            totalTime,
+            perLevel: this.settings.results.perLevel,
+          },
+        });
+      } else {
+        const newSettings = { ...this.settings };
+        newSettings.gridSize += 3;
+        newSettings.level += 1;
+        this.scene.start('GamemodeSolo', newSettings);
+      }
     }
   }
 
@@ -153,7 +195,7 @@ export default class GamemodeSolo extends Phaser.Scene {
       this.character.position.x !== this.endPoint.x ||
       this.character.position.y !== this.endPoint.y
     ) {
-      this.maze.fillGrid(this.endPoint, GRAY_0x);
+      this.maze.fillGrid(this.endPoint, COLORS_0x.MAZE_END);
     }
 
     if (this.hud) {

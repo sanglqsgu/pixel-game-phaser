@@ -1,8 +1,18 @@
 import Phaser from 'phaser';
 import { getDimensions } from '../Game/gameSettings';
-import { BLACK, GOLD, GRAY, WHITE } from '../Common/colours';
+import { COLORS, FONT } from '../Common/tokens';
 import { GAMEMODES, getGamemodeInfo } from '../Game/gameSettings';
 import { GESTURES, gestureDetection } from '../Game/gestures';
+import { destroyHud } from '../Game/gameHud';
+import {
+  createNavigationKeys,
+  isKeyJustDown,
+  setupDoubleTap,
+  isDoubleTap,
+} from '../Game/sceneInput';
+
+const UI_FONT = FONT.UI_TEXT;
+const PIXEL_FONT = FONT.GAME_TITLE;
 
 export default class Settings extends Phaser.Scene {
   constructor() {
@@ -14,163 +24,190 @@ export default class Settings extends Phaser.Scene {
     this.handleGesture = this.handleGesture.bind(this);
   }
 
-  preload() {
-    this.load.setBaseURL(
-      'https://raw.githubusercontent.com/wjxhenry/website/master'
-    );
-    // Load assets...
-  }
-
   create() {
-    this.cameras.main.setBackgroundColor(WHITE);
-    this.keys = this.input.keyboard.addKeys({
-      up: 'W',
-      arrowUp: 'up',
-      down: 'S',
-      arrowDown: 'down',
+    this.cameras.main.setBackgroundColor(COLORS.BG_SECONDARY);
+    createNavigationKeys(this, {
       left: 'A',
       arrowLeft: 'left',
       right: 'D',
       arrowRight: 'right',
-      select: 'Enter'
     });
     gestureDetection(this.input, this.handleGesture);
 
     this.gameDimensions = getDimensions(this.game);
-
     this.choice = 0;
+    setupDoubleTap(this);
 
-    this.doubleTapTimer = 0;
-    this.doubleTapCooldown = 200; // 200 milliseconds between each tap
+    this.drawScreen();
+  }
 
-    let title = this.add.text(
-      this.gameDimensions.screenCenter,
-      this.gameDimensions.screenSpaceUnit * 4,
-      'Settings',
-      {
-        fontFamily: 'Ubuntu',
-        fill: BLACK,
-        fontSize: this.gameDimensions.textSize1
-      }
-    );
-    title.setOrigin(0.5, 0.5);
-    let gridSize = this.add.text(
-      this.gameDimensions.screenCenter,
-      this.gameDimensions.screenSpaceUnit * 8,
-      `Grid size: ${this.settings.gridSize}`,
-      {
-        fontFamily: 'Ubuntu',
-        fill: GOLD,
-        fontSize: this.gameDimensions.textSize3
-      }
-    );
-    gridSize.setOrigin(0.5, 0.5);
-    let sideLength = this.add.text(
-      this.gameDimensions.screenCenter,
-      this.gameDimensions.screenSpaceUnit * 11,
-      `Side length: ${this.settings.sideLength}`,
-      {
-        fontFamily: 'Ubuntu',
-        fill: GRAY,
-        fontSize: this.gameDimensions.textSize3
-      }
-    );
-    sideLength.setOrigin(0.5, 0.5);
-    let gameMode = this.add.text(
-      this.gameDimensions.screenCenter,
-      this.gameDimensions.screenSpaceUnit * 14,
-      getGamemodeInfo(this.settings.gameMode).text,
-      {
-        fontFamily: 'Ubuntu',
-        fill: BLACK,
-        fontSize: this.gameDimensions.textSize3
-      }
-    );
-    gameMode.setOrigin(0.5, 0.5);
-    let menuReturn = this.add.text(
-      this.gameDimensions.screenCenter,
-      this.gameDimensions.screenSpaceUnit * 17,
-      'Return',
-      {
-        fontFamily: 'Ubuntu',
-        fill: BLACK,
-        fontSize: this.gameDimensions.textSize3
-      }
-    );
-    menuReturn.setOrigin(0.5, 0.5);
+  drawScreen() {
+    const centerX = this.gameDimensions.screenCenter;
+    const unit = this.gameDimensions.screenSpaceUnit;
 
-    this.options = [gridSize, gameMode, menuReturn];
+    this.add
+      .text(centerX, unit * 2.5, 'Settings', {
+        fontFamily: PIXEL_FONT,
+        fontSize: '24px',
+        color: COLORS.TEXT_TITLE,
+        stroke: COLORS.BG_PRIMARY,
+        strokeThickness: 4,
+        shadow: {
+          offsetX: 2,
+          offsetY: 2,
+          color: COLORS.BG_PRIMARY,
+          blur: 0,
+          fill: true,
+        },
+      })
+      .setOrigin(0.5, 0.5);
+
+    const options = [
+      {
+        label: 'Grid size',
+        value: () => `${this.settings.gridSize}`,
+        adjust: (dir) => this.updateGridSize(dir),
+      },
+      {
+        label: 'Game mode',
+        value: () => getGamemodeInfo(this.settings.gameMode).text,
+        adjust: (dir) => this.updateGameMode(dir),
+      },
+      { label: 'Return', value: () => '', adjust: null },
+    ];
+
+    this.optionTexts = options.map((opt, idx) => {
+      const y = unit * (7 + idx * 3.5);
+      const isSelected = idx === this.choice;
+
+      const panelColor = isSelected ? 0xf0a500 : 0xffffff;
+      const textColor = isSelected ? '#ffffff' : COLORS.BG_PRIMARY;
+
+      const panel = this.add.graphics();
+      const panelW = this.gameDimensions.screenLength * 0.6;
+      const panelH = unit * 2.2;
+      panel.fillStyle(panelColor, 1);
+      panel.fillRoundedRect(centerX - panelW / 2, y - panelH / 2, panelW, panelH, 8);
+
+      let displayText = opt.label;
+      if (opt.adjust) {
+        displayText += `: ${opt.value()}`;
+      }
+
+      const textObj = this.add
+        .text(centerX, y, displayText, {
+          fontFamily: UI_FONT,
+          fill: textColor,
+          fontSize: this.gameDimensions.textSize3,
+          fontStyle: isSelected ? 'bold' : 'normal',
+        })
+        .setOrigin(0.5, 0.5);
+
+      if (opt.adjust) {
+        const arrowSize = this.gameDimensions.textSize4;
+        const arrowY = y;
+
+        this.add
+          .text(centerX - panelW / 2 - arrowSize, arrowY, '◀', {
+            fontFamily: UI_FONT,
+            fill: isSelected ? COLORS.BG_PRIMARY : COLORS.TEXT_DIM,
+            fontSize: arrowSize,
+          })
+          .setOrigin(0.5, 0.5);
+
+        this.add
+          .text(centerX + panelW / 2 + arrowSize, arrowY, '▶', {
+            fontFamily: UI_FONT,
+            fill: isSelected ? COLORS.BG_PRIMARY : COLORS.TEXT_DIM,
+            fontSize: arrowSize,
+          })
+          .setOrigin(0.5, 0.5);
+      }
+
+      return { textObj, panel, config: opt };
+    });
+
+    this.add
+      .text(centerX, unit * 18, '◀ ▶ to change  |  ↑ ↓ to navigate  |  Enter to select', {
+        fontFamily: UI_FONT,
+        fill: COLORS.TEXT_DIM,
+        fontSize: this.gameDimensions.textSize4,
+      })
+      .setOrigin(0.5, 0.5);
+  }
+
+  refreshOption(idx) {
+    const opt = this.optionTexts[idx];
+    if (!opt) return;
+    const isSelected = idx === this.choice;
+    const centerX = this.gameDimensions.screenCenter;
+    const y =
+      this.gameDimensions.screenSpaceUnit * (7 + idx * 3.5);
+
+    const panelColor = isSelected ? 0xf0a500 : 0xffffff;
+    const textColor = isSelected ? '#ffffff' : COLORS.BG_PRIMARY;
+
+    opt.panel.clear();
+    const panelW = this.gameDimensions.screenLength * 0.6;
+    const panelH = this.gameDimensions.screenSpaceUnit * 2.2;
+    opt.panel.fillStyle(panelColor, 1);
+    opt.panel.fillRoundedRect(
+      centerX - panelW / 2,
+      y - panelH / 2,
+      panelW,
+      panelH,
+      8
+    );
+
+    let displayText = opt.config.label;
+    if (opt.config.adjust) {
+      displayText += `: ${opt.config.value()}`;
+    }
+    opt.textObj.setText(displayText);
+    opt.textObj.setColor(textColor);
+    opt.textObj.setFontStyle(isSelected ? 'bold' : 'normal');
   }
 
   handleGesture(detection) {
-    if (detection.gesture === GESTURES.SWIPE_UP) {
-      this.updateChoice(-1);
-    } else if (detection.gesture === GESTURES.SWIPE_DOWN) {
-      this.updateChoice(1);
-    } else if (detection.gesture === GESTURES.SWIPE_RIGHT) {
+    if (detection.gesture === GESTURES.SWIPE_UP) this.updateChoice(-1);
+    else if (detection.gesture === GESTURES.SWIPE_DOWN) this.updateChoice(1);
+    else if (detection.gesture === GESTURES.SWIPE_RIGHT)
       this.updateSelection(1);
-    } else if (detection.gesture === GESTURES.SWIPE_LEFT) {
+    else if (detection.gesture === GESTURES.SWIPE_LEFT)
       this.updateSelection(-1);
-    } else if (detection.gesture === GESTURES.SINGLE_TAP) {
-      if (new Date().getTime() - this.doubleTapTimer < this.doubleTapCooldown) {
-        if (this.choice === 2) {
-          this.scene.start('MainMenu', this.settings);
-        }
-      }
-      this.doubleTapTimer = new Date().getTime();
+    else if (detection.gesture === GESTURES.SINGLE_TAP && isDoubleTap(this)) {
+      if (this.choice === 2) this.scene.start('MainMenu', this.settings);
     }
   }
 
   update() {
-    if (
-      Phaser.Input.Keyboard.JustDown(this.keys.up) ||
-      Phaser.Input.Keyboard.JustDown(this.keys.arrowUp)
-    ) {
-      this.updateChoice(-1);
-    }
-    if (
-      Phaser.Input.Keyboard.JustDown(this.keys.down) ||
-      Phaser.Input.Keyboard.JustDown(this.keys.arrowDown)
-    ) {
-      this.updateChoice(1);
-    }
-    if (
-      Phaser.Input.Keyboard.JustDown(this.keys.right) ||
-      Phaser.Input.Keyboard.JustDown(this.keys.arrowRight)
-    ) {
-      this.updateSelection(1);
-    }
-    if (
-      Phaser.Input.Keyboard.JustDown(this.keys.left) ||
-      Phaser.Input.Keyboard.JustDown(this.keys.arrowLeft)
-    ) {
-      this.updateSelection(-1);
-    }
-    if (Phaser.Input.Keyboard.JustDown(this.keys.select)) {
-      if (this.choice === 2) {
-        this.scene.start('MainMenu', this.settings);
-      }
+    if (isKeyJustDown(this, 'up')) this.updateChoice(-1);
+    if (isKeyJustDown(this, 'down')) this.updateChoice(1);
+    if (isKeyJustDown(this, 'right')) this.updateSelection(1);
+    if (isKeyJustDown(this, 'left')) this.updateSelection(-1);
+    if (isKeyJustDown(this, 'select') && this.choice === 2) {
+      this.scene.start('MainMenu', this.settings);
     }
   }
 
   updateChoice(direction) {
+    const prevChoice = this.choice;
     let newChoice = this.choice + direction;
-    if (newChoice > -1 && newChoice < this.options.length) {
-      this.options[this.choice].setFill(BLACK);
-      this.options[newChoice].setFill(GOLD);
+    if (newChoice > -1 && newChoice < this.optionTexts.length) {
       this.choice = newChoice;
+      this.refreshOption(prevChoice);
+      this.refreshOption(newChoice);
     }
   }
 
   updateSelection(direction) {
-    if (this.choice === 0) {
-      this.updateGridSize(direction);
-    } else if (this.choice === 1) {
-      this.updateGameMode(direction);
+    const opt = this.optionTexts[this.choice];
+    if (opt && opt.config.adjust) {
+      opt.config.adjust(direction);
+      this.refreshOption(this.choice);
+    } else if (this.choice === 2 && direction !== 0) {
+      this.scene.start('MainMenu', this.settings);
     }
-    // else if (this.choice === 1) {
-    //   this.updateSideLength(direction);
-    // }
   }
 
   updateGridSize(direction) {
@@ -179,27 +216,18 @@ export default class Settings extends Phaser.Scene {
       newGridSize > this.settings.minGridSize - 1 &&
       newGridSize < this.settings.maxGridSize + 1
     ) {
-      this.options[0].setText(`Grid size: ${newGridSize}`);
       this.settings.gridSize = newGridSize;
-    }
-  }
-
-  updateSideLength(direction) {
-    let newSideLength = this.settings.sideLength + direction;
-    if (
-      newSideLength > this.settings.minSideLength - 1 &&
-      newSideLength < this.settings.maxSideLength + 1
-    ) {
-      this.options[1].setText(`Side length: ${newSideLength}`);
-      this.settings.sideLength = newSideLength;
     }
   }
 
   updateGameMode(direction) {
     let newGameMode = this.settings.gameMode + direction;
     if (newGameMode > -1 && newGameMode < Object.keys(GAMEMODES).length) {
-      this.options[1].setText(getGamemodeInfo(newGameMode).text);
       this.settings.gameMode = newGameMode;
     }
+  }
+
+  shutdown() {
+    destroyHud();
   }
 }

@@ -23,7 +23,7 @@ export const GESTURES = {
   SINGLE_TAP: 4,
   DOUBLE_TAP: 5, // Not sure if this can be implemented here (maybe separately)
   TP_SWIPE_RIGHT: 6, // TP = Two Pointer... (WIP)
-  NONE_DETECTED: 7
+  NONE_DETECTED: 7,
 };
 
 /**
@@ -56,36 +56,36 @@ function detectGesture(pointer, options) {
   let speedY = Math.abs(velY);
   let origin = {
     x: pointer.downX,
-    y: pointer.downY
+    y: pointer.downY,
   };
   if (speedX > speedY && speedX > swipeThreshold) {
     if (velX < 0) {
       return {
         gesture: GESTURES.SWIPE_LEFT,
-        origin: origin
+        origin: origin,
       };
     } else {
       return {
         gesture: GESTURES.SWIPE_RIGHT,
-        origin: origin
+        origin: origin,
       };
     }
   } else if (speedY > speedX && speedY > swipeThreshold) {
     if (velY < 0) {
       return {
         gesture: GESTURES.SWIPE_UP,
-        origin: origin
+        origin: origin,
       };
     } else {
       return {
         gesture: GESTURES.SWIPE_DOWN,
-        origin: origin
+        origin: origin,
       };
     }
   }
   return {
     gesture: GESTURES.SINGLE_TAP,
-    origin: origin
+    origin: origin,
   };
 }
 

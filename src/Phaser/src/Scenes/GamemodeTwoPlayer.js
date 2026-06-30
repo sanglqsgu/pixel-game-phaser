@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
-import { BLUE_0x, GREEN_0x, BLUE, GREEN } from '../Common/colours';
+import { COLORS_0x, COLORS } from '../Common/tokens';
 import GameMaze from '../Game/gameMaze';
-import Character from '../Game/character';
+import Character, { setupCarAnimations } from '../Game/character';
 import { GESTURES, gestureDetection } from '../Game/gestures';
 import { GAMEMODES } from '../Game/gameSettings';
 import {
@@ -9,7 +9,7 @@ import {
   placeRandomImages,
   buildObstacleMap,
   removeObstacleAt,
-  getObstacleCount
+  getObstacleCount,
 } from '../Game/randomImages';
 import { createHud, updateHud, destroyHud } from '../Game/gameHud';
 
@@ -28,10 +28,16 @@ export default class GamemodeTwoPlayer extends Phaser.Scene {
 
   preload() {
     loadRandomImages(this);
+    const baseUrl = process.env.PUBLIC_URL || '';
+    this.load.spritesheet('car', `${baseUrl}/assets/object/car/Car2.png`, {
+      frameWidth: 80,
+      frameHeight: 80,
+    });
   }
 
   create() {
-    this.cameras.main.setBackgroundColor(BLUE_0x);
+    setupCarAnimations(this);
+    this.cameras.main.setBackgroundColor(COLORS_0x.BG_PRIMARY);
     this.keys = this.input.keyboard.addKeys({
       p1Up: 'up',
       p2Up: 'W',
@@ -41,13 +47,12 @@ export default class GamemodeTwoPlayer extends Phaser.Scene {
       p2Left: 'A',
       p1Right: 'right',
       p2Right: 'D',
-      exit: 'Esc'
+      exit: 'Esc',
     });
     this.screenHalfway = this.game.config.width / 2;
     gestureDetection(this.input, this.handleGesture);
 
     this.graphics = this.add.graphics();
-
     this.maze = new GameMaze(this.game, this.graphics, this.settings.gridSize);
 
     let positions = this.generateRandomPositions();
@@ -58,11 +63,13 @@ export default class GamemodeTwoPlayer extends Phaser.Scene {
 
     this.player1 = new Character(this.maze, p1InitialPosition, {
       smoothMovement: true,
-      colour: BLUE_0x
+      scene: this,
+      imageKey: 'car',
     });
     this.player2 = new Character(this.maze, p2InitialPosition, {
       smoothMovement: true,
-      colour: GREEN_0x
+      scene: this,
+      imageKey: 'car',
     });
 
     this.maze.drawMaze();
@@ -70,12 +77,13 @@ export default class GamemodeTwoPlayer extends Phaser.Scene {
     this.player2.drawCharacter();
 
     this.obstacles = placeRandomImages(this, this.graphics, this.maze, {
-      excludePositions: [p1InitialPosition, p2InitialPosition]
+      excludePositions: [p1InitialPosition, p2InitialPosition],
     });
     this.obstacleMap = buildObstacleMap(this.obstacles);
 
     this.totalObstacles = getObstacleCount(this.obstacleMap);
     this.remainingObstacles = this.totalObstacles;
+    this.collectedItems = [];
     this.hud = createHud(this, this.totalObstacles);
 
     this.timer = new Date().getTime();
@@ -86,7 +94,7 @@ export default class GamemodeTwoPlayer extends Phaser.Scene {
     if (this.hud) {
       const remaining = this.remainingObstacles;
       updateHud(this.hud, {
-        logo: `Logo: ${remaining}/${this.totalObstacles}`
+        logo: `Logo: ${remaining}/${this.totalObstacles}`,
       });
     }
   }
@@ -95,30 +103,19 @@ export default class GamemodeTwoPlayer extends Phaser.Scene {
     if (this.hud) {
       const remaining = getObstacleCount(this.obstacleMap);
       updateHud(this.hud, {
-        logo: `Logo: ${remaining}/${this.totalObstacles} - Collect all to finish!`
+        logo: `Logo: ${remaining}/${this.totalObstacles} - Collect all to finish!`,
       });
     }
   }
 
   generateRandomPositions() {
     let furthestPoint = this.settings.gridSize - 1;
-    let position1 = {
-      p1: { x: 0, y: 0 },
-      p2: { x: furthestPoint, y: furthestPoint }
-    };
-    let position2 = {
-      p1: { x: furthestPoint, y: 0 },
-      p2: { x: 0, y: furthestPoint }
-    };
-    let position3 = {
-      p1: { x: 0, y: furthestPoint },
-      p2: { x: furthestPoint, y: 0 }
-    };
-    let position4 = {
-      p1: { x: furthestPoint, y: furthestPoint },
-      p2: { x: 0, y: 0 }
-    };
-    let positions = [position1, position2, position3, position4];
+    let positions = [
+      { p1: { x: 0, y: 0 }, p2: { x: furthestPoint, y: furthestPoint } },
+      { p1: { x: furthestPoint, y: 0 }, p2: { x: 0, y: furthestPoint } },
+      { p1: { x: 0, y: furthestPoint }, p2: { x: furthestPoint, y: 0 } },
+      { p1: { x: furthestPoint, y: furthestPoint }, p2: { x: 0, y: 0 } },
+    ];
     return positions[Math.floor(Math.random() * 4)];
   }
 
@@ -152,7 +149,9 @@ export default class GamemodeTwoPlayer extends Phaser.Scene {
 
   p1UpdateMovement(direction) {
     this.player1.moveCharacter(direction);
-    if (removeObstacleAt(this.player1.position, this.obstacleMap)) {
+    const removedKey = removeObstacleAt(this.player1.position, this.obstacleMap);
+    if (removedKey) {
+      this.collectedItems.push(removedKey);
       this.maze.fillGrid(this.player1.position, this.maze.colour);
       this.updateLogo();
     }
@@ -169,15 +168,18 @@ export default class GamemodeTwoPlayer extends Phaser.Scene {
         results: {
           gameMode: GAMEMODES.TWO_PLAYER.id,
           message: 'Player 1 wins!',
-          messageColour: BLUE
-        }
+          messageColour: COLORS.PLAYER_1,
+          collectedItems: this.collectedItems,
+        },
       });
     }
   }
 
   p2UpdateMovement(direction) {
     this.player2.moveCharacter(direction);
-    if (removeObstacleAt(this.player2.position, this.obstacleMap)) {
+    const removedKey = removeObstacleAt(this.player2.position, this.obstacleMap);
+    if (removedKey) {
+      this.collectedItems.push(removedKey);
       this.maze.fillGrid(this.player2.position, this.maze.colour);
       this.updateLogo();
     }
@@ -194,8 +196,9 @@ export default class GamemodeTwoPlayer extends Phaser.Scene {
         results: {
           gameMode: GAMEMODES.TWO_PLAYER.id,
           message: 'Player 2 wins!',
-          messageColour: GREEN
-        }
+          messageColour: COLORS.PLAYER_2,
+          collectedItems: this.collectedItems,
+        },
       });
     }
   }
@@ -242,11 +245,11 @@ export default class GamemodeTwoPlayer extends Phaser.Scene {
     this.player1.update();
     this.player2.update();
     if (!this.player1.isUpdating()) {
-      this.maze.fillGrid(this.p2EndPoint, GREEN_0x);
+      this.maze.fillGrid(this.p2EndPoint, COLORS_0x.PLAYER_2);
       this.player1.drawCharacter();
     }
     if (!this.player2.isUpdating()) {
-      this.maze.fillGrid(this.p1EndPoint, BLUE_0x);
+      this.maze.fillGrid(this.p1EndPoint, COLORS_0x.PLAYER_1);
       this.player2.drawCharacter();
     }
 

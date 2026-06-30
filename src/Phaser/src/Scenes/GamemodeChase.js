@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import { getDimensions } from '../Game/gameSettings';
-import { BLACK, WHITE } from '../Common/colours';
+import { COLORS, FONT } from '../Common/tokens';
 import { GESTURES, gestureDetection } from '../Game/gestures';
+import { createNavigationKeys, isKeyJustDown } from '../Game/sceneInput';
 
 export default class GamemodeChase extends Phaser.Scene {
   constructor() {
@@ -14,29 +15,24 @@ export default class GamemodeChase extends Phaser.Scene {
   }
 
   create() {
-    this.cameras.main.setBackgroundColor(WHITE);
-    this.keys = this.input.keyboard.addKeys({
-      continue: 'Enter'
-    });
+    this.cameras.main.setBackgroundColor(COLORS.BG_SECONDARY);
+    createNavigationKeys(this);
     gestureDetection(this.input, this.handleGesture);
 
     this.gameDimensions = getDimensions(this.game);
 
-    this.drawScreen();
-  }
-
-  drawScreen() {
-    let toBeImplemented = this.add.text(
-      this.gameDimensions.screenCenter,
-      this.gameDimensions.screenSpaceUnit * 4,
-      'Chase (WIP)',
-      {
-        fontFamily: 'Ubuntu',
-        fill: BLACK,
-        fontSize: this.gameDimensions.textSize1
-      }
-    );
-    toBeImplemented.setOrigin(0.5, 0.5);
+    this.add
+      .text(
+        this.gameDimensions.screenCenter,
+        this.gameDimensions.screenSpaceUnit * 4,
+        'Chase (WIP)',
+        {
+          fontFamily: FONT.UI_TEXT,
+          fill: COLORS.BG_PRIMARY,
+          fontSize: this.gameDimensions.textSize1,
+        }
+      )
+      .setOrigin(0.5, 0.5);
   }
 
   handleGesture(detection) {
@@ -46,7 +42,7 @@ export default class GamemodeChase extends Phaser.Scene {
   }
 
   update() {
-    if (Phaser.Input.Keyboard.JustDown(this.keys.continue)) {
+    if (isKeyJustDown(this, 'select')) {
       this.scene.start('MainMenu', this.settings);
     }
   }

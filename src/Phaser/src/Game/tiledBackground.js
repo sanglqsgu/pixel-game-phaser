@@ -3,7 +3,7 @@
  * MainMenu and any other scene can share the same assets.
  */
 export const TILED_KEYS = {
-  image: 'bg-tiles'
+  image: 'bg-tiles',
 };
 
 /**
@@ -59,6 +59,7 @@ export function createTiledBackground(scene) {
     canvasHeight,
     0x757373
   );
+  backdrop.setData('type', 'backdrop');
   backdrop.setDepth(-2);
 
   const bg = scene.add.image(x, y, TILED_KEYS.image);

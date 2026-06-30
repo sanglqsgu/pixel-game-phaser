@@ -17,7 +17,7 @@ test('getVertices', () => {
   expect.assertions(2);
   let g = new Graph(new Set([1, 2, 3]), [
     [1, 2],
-    [2, 3]
+    [2, 3],
   ]);
   expect(g.getVertices()).toEqual(new Set(['1', '2', '3']));
   let h = new Graph();
@@ -29,19 +29,19 @@ test('getEdges', () => {
   let g = new Graph(new Set([1, 2, 3]), [
     [1, 2],
     [2, 3],
-    [3, 1]
+    [3, 1],
   ]);
   expect(g.getEdges().sort()).toEqual([
     [1, 2],
     [2, 3],
-    [3, 1]
+    [3, 1],
   ]);
   g.addEdge([2, 1]);
   expect(g.getEdges().sort()).toEqual([
     [1, 2],
     [2, 1],
     [2, 3],
-    [3, 1]
+    [3, 1],
   ]);
 });
 
@@ -50,19 +50,19 @@ test('getEdgesString', () => {
   let g = new Graph(new Set(['1', '2', '3']), [
     ['1', '2'],
     ['2', '3'],
-    ['3', '1']
+    ['3', '1'],
   ]);
   expect(g.getEdges().sort()).toEqual([
     ['1', '2'],
     ['2', '3'],
-    ['3', '1']
+    ['3', '1'],
   ]);
   g.addEdge(['2', '1']);
   expect(g.getEdges().sort()).toEqual([
     ['1', '2'],
     ['2', '1'],
     ['2', '3'],
-    ['3', '1']
+    ['3', '1'],
   ]);
 });
 
@@ -114,7 +114,7 @@ test('neighbours', () => {
     [3, 1],
     [3, 4],
     [2, 4],
-    [1, 2]
+    [1, 2],
   ];
   let g = new Graph(new Set([1, 2, 3, 4, 5]), edges);
   expect(g.neighbours(1)).toEqual([2, 4]);
@@ -131,7 +131,7 @@ test('isWalk', () => {
     [2, 5],
     [3, 4],
     [4, 2],
-    [5, 4]
+    [5, 4],
   ];
   let g = new Graph(new Set([1, 2, 3, 4, 5]), edges);
   expect(Graph.isWalk(g, [3, 4, 2, 5, 4, 2])).toEqual(true);
@@ -150,7 +150,7 @@ test('isPath', () => {
     [2, 5],
     [3, 4],
     [4, 2],
-    [5, 4]
+    [5, 4],
   ];
   let g = new Graph(new Set([1, 2, 3, 4, 5]), edges);
   expect(Graph.isPath(g, [3, 4, 2, 5, 4, 2])).toEqual(false);

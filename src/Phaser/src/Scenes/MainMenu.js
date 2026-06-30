@@ -2,33 +2,17 @@ import Phaser from 'phaser';
 import {
   initSettings,
   getDimensions,
-  getGamemodeInfo
+  getGamemodeInfo,
 } from '../Game/gameSettings';
-import { BLACK, BLUE, GOLD } from '../Common/colours';
+import { COLORS, FONT } from '../Common/tokens';
 import { GESTURES, gestureDetection } from '../Game/gestures';
 import {
   loadTiledBackground,
-  createTiledBackground
+  createTiledBackground,
 } from '../Game/tiledBackground';
+import { destroyHud } from '../Game/gameHud';
 
-// Pixel font loaded from Google Fonts in public/index.html. We add a
-// solid stroke and a soft shadow so the text pops against the map
-// background, and we keep the body color so text reads on any backdrop.
-const PIXEL_FONT = '"Press Start 2P", monospace';
-const pixelTextStyle = {
-  fontFamily: PIXEL_FONT,
-  fontSize: '32px',
-  color: GOLD,
-  stroke: BLACK,
-  strokeThickness: 6,
-  shadow: {
-    offsetX: 3,
-    offsetY: 3,
-    color: BLACK,
-    blur: 0,
-    fill: true
-  }
-};
+const PIXEL_FONT = FONT.GAME_TITLE;
 
 export default class MainMenu extends Phaser.Scene {
   constructor() {
@@ -41,96 +25,174 @@ export default class MainMenu extends Phaser.Scene {
   }
 
   preload() {
-    // Assets placed under `public/` are served at the root URL of the dev
-    // server by Create React App. No setBaseURL override is needed for the
-    // tiled background, so we just queue it directly.
     loadTiledBackground(this);
   }
 
   create() {
-    this.cameras.main.setBackgroundColor(BLACK);
+    destroyHud();
+    this.cameras.main.setBackgroundColor(COLORS.BG_PRIMARY);
     this.keys = this.input.keyboard.addKeys({
       up: 'W',
       arrowUp: 'up',
       down: 'S',
       arrowDown: 'down',
-      select: 'Enter'
+      select: 'Enter',
     });
     gestureDetection(this.input, this.handleGesture);
 
     this.gameDimensions = getDimensions(this.game);
-
     this.choice = 0;
-
     this.doubleTapTimer = 0;
-    this.doubleTapCooldown = 200; // 200 milliseconds between each tap
+    this.doubleTapCooldown = 200;
 
-    // Tiled background layers (loaded once in BootScene)
     createTiledBackground(this);
 
-    // Title - split into two lines so "Cùng JETBOT" sits on its own
-    // row, and tint the second line GOLD so it pops against the first.
-    let titleLine1 = this.add.text(
-      this.gameDimensions.screenCenter,
-      this.gameDimensions.screenSpaceUnit * 3,
-      'Vượt mê cung',
-      {
-        ...pixelTextStyle,
+    this.drawScreen();
+  }
+
+  drawScreen() {
+    const centerX = this.gameDimensions.screenCenter;
+    const unit = this.gameDimensions.screenSpaceUnit;
+
+    this.add
+      .text(centerX, unit * 2.5, 'Vượt mê cung', {
+        fontFamily: PIXEL_FONT,
         fontSize: '30px',
-        color: BLUE
-      }
-    );
-    titleLine1.setOrigin(0.5, 0.5);
+        color: COLORS.TEXT_TITLE,
+        stroke: COLORS.BG_PRIMARY,
+        strokeThickness: 6,
+        shadow: {
+          offsetX: 3,
+          offsetY: 3,
+          color: COLORS.BG_PRIMARY,
+          blur: 0,
+          fill: true,
+        },
+      })
+      .setOrigin(0.5, 0.5);
 
-    let titleLine2 = this.add.text(
-      this.gameDimensions.screenCenter,
-      this.gameDimensions.screenSpaceUnit * 5,
-      'cùng JETBOT',
+    this.add
+      .text(centerX, unit * 4.5, 'cùng JETBOT', {
+        fontFamily: PIXEL_FONT,
+        fontSize: '22px',
+        color: COLORS.TEXT_TITLE,
+        stroke: COLORS.BG_PRIMARY,
+        strokeThickness: 6,
+        shadow: {
+          offsetX: 3,
+          offsetY: 3,
+          color: COLORS.BG_PRIMARY,
+          blur: 0,
+          fill: true,
+        },
+      })
+      .setOrigin(0.5, 0.5);
+
+    const menuItems = [
       {
-        ...pixelTextStyle,
-        fontSize: '24px',
-        color: BLUE
-      }
-    );
-    titleLine2.setOrigin(0.5, 0.5);
-
-    // Menu options - slightly smaller than the title, gold by default
-    const optionStyle = {
-      ...pixelTextStyle,
-      fontSize: '20px',
-      color: GOLD
-    };
-
-    let startGame = this.add.text(
-      this.gameDimensions.screenCenter,
-      this.gameDimensions.screenSpaceUnit * 9,
-      'Start Game',
-      optionStyle
-    );
-    startGame.setOrigin(0.5, 0.5);
-
-    let settings = this.add.text(
-      this.gameDimensions.screenCenter,
-      this.gameDimensions.screenSpaceUnit * 12,
-      'Settings',
-      optionStyle
-    );
-    settings.setOrigin(0.5, 0.5);
-
-    this.options = [
-      {
-        text: startGame,
+        label: 'Start Game',
         scene: getGamemodeInfo(this.settings.gameMode).scene,
-        defaultColor: '#c97a00'
       },
-      { text: settings, scene: 'Settings', defaultColor: '#c97a00' }
-      // { text: exit, scene: 'Null' }
+      { label: 'Settings', scene: 'Settings' },
+      { label: 'Lịch sử', scene: 'History' },
     ];
 
-    // Make sure only the currently selected option glows gold; the rest
-    // use the dimmer default color so the highlight is obvious.
-    this.options.forEach((opt, idx) => {
-      opt.text.setColor(idx === this.choice ? GOLD : opt.defaultColor);
+    this.optionPanels = [];
+    this.menuTexts = [];
+
+    menuItems.forEach((item, idx) => {
+      const y = unit * (9 + idx * 4);
+      const isSelected = idx === this.choice;
+
+      const panelW = this.gameDimensions.screenLength * 0.5;
+      const panelH = unit * 2.5;
+
+      const panel = this.add.graphics();
+      if (isSelected) {
+        panel.fillStyle(0xf0a500, 1);
+        panel.fillRoundedRect(
+          centerX - panelW / 2,
+          y - panelH / 2,
+          panelW,
+          panelH,
+          10
+        );
+      } else {
+        panel.fillStyle(0x000000, 0.4);
+        panel.fillRoundedRect(
+          centerX - panelW / 2,
+          y - panelH / 2,
+          panelW,
+          panelH,
+          10
+        );
+        panel.lineStyle(2, 0xf0a500, 0.6);
+        panel.strokeRoundedRect(
+          centerX - panelW / 2,
+          y - panelH / 2,
+          panelW,
+          panelH,
+          10
+        );
+      }
+
+      const textColor = isSelected ? COLORS.BG_PRIMARY : COLORS.TEXT_HIGHLIGHT;
+      const textObj = this.add
+        .text(centerX, y, item.label, {
+          fontFamily: PIXEL_FONT,
+          fontSize: '18px',
+          color: textColor,
+          fontStyle: isSelected ? 'bold' : 'normal',
+        })
+        .setOrigin(0.5, 0.5);
+
+      this.optionPanels.push(panel);
+      this.menuTexts.push({ textObj, config: item, panel });
+    });
+  }
+
+  refreshMenu() {
+    const centerX = this.gameDimensions.screenCenter;
+    const unit = this.gameDimensions.screenSpaceUnit;
+
+    this.menuTexts.forEach((item, idx) => {
+      const y = unit * (9 + idx * 4);
+      const isSelected = idx === this.choice;
+      const panelW = this.gameDimensions.screenLength * 0.5;
+      const panelH = unit * 2.5;
+
+      item.panel.clear();
+      if (isSelected) {
+        item.panel.fillStyle(0xf0a500, 1);
+        item.panel.fillRoundedRect(
+          centerX - panelW / 2,
+          y - panelH / 2,
+          panelW,
+          panelH,
+          10
+        );
+      } else {
+        item.panel.fillStyle(0x000000, 0.4);
+        item.panel.fillRoundedRect(
+          centerX - panelW / 2,
+          y - panelH / 2,
+          panelW,
+          panelH,
+          10
+        );
+        item.panel.lineStyle(2, 0xf0a500, 0.6);
+        item.panel.strokeRoundedRect(
+          centerX - panelW / 2,
+          y - panelH / 2,
+          panelW,
+          panelH,
+          10
+        );
+      }
+
+      const textColor = isSelected ? COLORS.BG_PRIMARY : COLORS.TEXT_HIGHLIGHT;
+      item.textObj.setColor(textColor);
+      item.textObj.setFontStyle(isSelected ? 'bold' : 'normal');
     });
   }
 
@@ -141,7 +203,10 @@ export default class MainMenu extends Phaser.Scene {
       this.updateChoice(1);
     } else if (detection.gesture === GESTURES.SINGLE_TAP) {
       if (new Date().getTime() - this.doubleTapTimer < this.doubleTapCooldown) {
-        this.scene.start(this.options[this.choice].scene, this.settings);
+        this.scene.start(
+          this.menuTexts[this.choice].config.scene,
+          this.settings
+        );
       }
       this.doubleTapTimer = new Date().getTime();
     }
@@ -161,18 +226,22 @@ export default class MainMenu extends Phaser.Scene {
       this.updateChoice(1);
     }
     if (Phaser.Input.Keyboard.JustDown(this.keys.select)) {
-      this.scene.start(this.options[this.choice].scene, this.settings);
+      this.scene.start(
+        this.menuTexts[this.choice].config.scene,
+        this.settings
+      );
     }
   }
 
   updateChoice(direction) {
     let newChoice = this.choice + direction;
-    if (newChoice > -1 && newChoice < this.options.length) {
-      this.options[this.choice].text.setColor(
-        this.options[this.choice].defaultColor
-      );
-      this.options[newChoice].text.setColor(GOLD);
+    if (newChoice > -1 && newChoice < this.menuTexts.length) {
       this.choice = newChoice;
+      this.refreshMenu();
     }
+  }
+
+  shutdown() {
+    destroyHud();
   }
 }

@@ -11,6 +11,7 @@
 
 # production
 /build
+/build_bak*
 /src/Phaser/dist
 
 # misc
