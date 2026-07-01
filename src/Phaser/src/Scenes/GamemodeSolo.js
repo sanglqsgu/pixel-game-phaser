@@ -13,6 +13,8 @@ import {
   getObstacleCount,
 } from '../Game/randomImages';
 import { createHud, updateHud, destroyHud } from '../Game/gameHud';
+import { loadMazeMarkers, drawMazeMarker } from '../Game/mazeMarkers';
+import { saveGameSettings } from '../Game/gameProgress';
 
 export default class GamemodeSolo extends Phaser.Scene {
   constructor() {
@@ -31,6 +33,7 @@ export default class GamemodeSolo extends Phaser.Scene {
 
   preload() {
     loadRandomImages(this);
+    loadMazeMarkers(this);
     const baseUrl = process.env.PUBLIC_URL || '';
     this.load.spritesheet('car', `${baseUrl}/assets/object/car/Car2.png`, {
       frameWidth: 80,
@@ -53,6 +56,7 @@ export default class GamemodeSolo extends Phaser.Scene {
       exit: 'Esc',
     });
     gestureDetection(this.input, this.handleGesture);
+    saveGameSettings(this.settings);
 
     this.graphics = this.add.graphics();
     this.maze = new GameMaze(this.game, this.graphics, this.settings.gridSize);
@@ -70,7 +74,19 @@ export default class GamemodeSolo extends Phaser.Scene {
     };
 
     this.maze.drawMaze();
+    this.maze.fillGrid(initialPosition, 0x19d39b);
     this.maze.fillGrid(this.endPoint, COLORS_0x.MAZE_END);
+    drawMazeMarker(this, this.maze, initialPosition, {
+      kind: 'start',
+      label: 'START',
+      accent: 0x19d39b,
+      iconAlpha: 0.78,
+    });
+    drawMazeMarker(this, this.maze, this.endPoint, {
+      kind: 'finish',
+      label: 'FINISH',
+      accent: 0xffb238,
+    });
     this.character.drawCharacter();
 
     this.obstacles = placeRandomImages(this, this.graphics, this.maze, {
@@ -148,6 +164,7 @@ export default class GamemodeSolo extends Phaser.Scene {
       });
 
       if (this.settings.level >= this.settings.totalLevels) {
+        saveGameSettings(this.settings);
         this.scene.start('EndScreen', {
           settings: this.settings,
           results: {
@@ -163,6 +180,7 @@ export default class GamemodeSolo extends Phaser.Scene {
         const newSettings = { ...this.settings };
         newSettings.gridSize += 3;
         newSettings.level += 1;
+        saveGameSettings(newSettings);
         this.scene.start('GamemodeSolo', newSettings);
       }
     }
@@ -170,6 +188,7 @@ export default class GamemodeSolo extends Phaser.Scene {
 
   update() {
     if (Phaser.Input.Keyboard.JustDown(this.keys.exit)) {
+      saveGameSettings(this.settings);
       this.scene.start('MainMenu', this.settings);
     }
 

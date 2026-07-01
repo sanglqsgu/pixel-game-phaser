@@ -4,6 +4,7 @@ import { COLORS, FONT } from '../Common/tokens';
 import { GAMEMODES, getGamemodeInfo } from '../Game/gameSettings';
 import { GESTURES, gestureDetection } from '../Game/gestures';
 import { destroyHud } from '../Game/gameHud';
+import { saveGameSettings } from '../Game/gameProgress';
 import {
   createNavigationKeys,
   isKeyJustDown,
@@ -25,7 +26,7 @@ export default class Settings extends Phaser.Scene {
   }
 
   create() {
-    this.cameras.main.setBackgroundColor(COLORS.BG_SECONDARY);
+    this.cameras.main.setBackgroundColor(COLORS.BG_PRIMARY);
     createNavigationKeys(this, {
       left: 'A',
       arrowLeft: 'left',
@@ -41,94 +42,109 @@ export default class Settings extends Phaser.Scene {
     this.drawScreen();
   }
 
+  drawFrame() {
+    const { screenLength } = this.gameDimensions;
+    const g = this.add.graphics();
+    g.fillStyle(0x18203a, 1);
+    g.fillRect(0, 0, screenLength, screenLength);
+    g.fillStyle(0x5cc8ff, 0.08);
+    g.fillRect(0, 0, screenLength, screenLength * 0.28);
+    g.lineStyle(2, 0x5cc8ff, 0.7);
+    g.strokeRect(9, 9, screenLength - 18, screenLength - 18);
+    g.lineStyle(1, 0xffb238, 0.42);
+    g.strokeRect(16, 16, screenLength - 32, screenLength - 32);
+  }
+
   drawScreen() {
     const centerX = this.gameDimensions.screenCenter;
     const unit = this.gameDimensions.screenSpaceUnit;
+    const screenLength = this.gameDimensions.screenLength;
+
+    this.drawFrame();
 
     this.add
-      .text(centerX, unit * 2.5, 'Settings', {
+      .text(centerX, unit * 2.25, 'Settings', {
         fontFamily: PIXEL_FONT,
         fontSize: '24px',
-        color: COLORS.TEXT_TITLE,
-        stroke: COLORS.BG_PRIMARY,
-        strokeThickness: 4,
-        shadow: {
-          offsetX: 2,
-          offsetY: 2,
-          color: COLORS.BG_PRIMARY,
-          blur: 0,
-          fill: true,
-        },
+        color: COLORS.TEXT_PRIMARY,
+        stroke: '#070a13',
+        strokeThickness: 6,
       })
       .setOrigin(0.5, 0.5);
+
+    this.add
+      .text(centerX, unit * 3.7, 'Tinh chỉnh trước khi vào mê cung', {
+        fontFamily: UI_FONT,
+        fill: COLORS.TEXT_SECONDARY,
+        fontSize: this.gameDimensions.textSize4,
+      })
+      .setOrigin(0.5, 0.5);
+
+    const card = this.add.graphics();
+    card.fillStyle(0x101426, 0.78);
+    card.fillRoundedRect(unit * 1.35, unit * 5.1, screenLength - unit * 2.7, unit * 10.4, 12);
+    card.lineStyle(2, 0x5cc8ff, 0.35);
+    card.strokeRoundedRect(unit * 1.35, unit * 5.1, screenLength - unit * 2.7, unit * 10.4, 12);
 
     const options = [
       {
         label: 'Grid size',
-        value: () => `${this.settings.gridSize}`,
+        hint: 'Kích thước mê cung',
+        value: () => `${this.settings.gridSize} x ${this.settings.gridSize}`,
         adjust: (dir) => this.updateGridSize(dir),
       },
       {
         label: 'Game mode',
+        hint: 'Chế độ chơi',
         value: () => getGamemodeInfo(this.settings.gameMode).text,
         adjust: (dir) => this.updateGameMode(dir),
       },
-      { label: 'Return', value: () => '', adjust: null },
+      { label: 'Return', hint: 'Quay về menu chính', value: () => '', adjust: null },
     ];
 
     this.optionTexts = options.map((opt, idx) => {
-      const y = unit * (7 + idx * 3.5);
-      const isSelected = idx === this.choice;
-
-      const panelColor = isSelected ? 0xf0a500 : 0xffffff;
-      const textColor = isSelected ? '#ffffff' : COLORS.BG_PRIMARY;
-
+      const y = unit * (7 + idx * 3.25);
+      const panelW = screenLength * 0.72;
+      const panelH = unit * 2.35;
       const panel = this.add.graphics();
-      const panelW = this.gameDimensions.screenLength * 0.6;
-      const panelH = unit * 2.2;
-      panel.fillStyle(panelColor, 1);
-      panel.fillRoundedRect(centerX - panelW / 2, y - panelH / 2, panelW, panelH, 8);
-
-      let displayText = opt.label;
-      if (opt.adjust) {
-        displayText += `: ${opt.value()}`;
-      }
-
-      const textObj = this.add
-        .text(centerX, y, displayText, {
-          fontFamily: UI_FONT,
-          fill: textColor,
-          fontSize: this.gameDimensions.textSize3,
-          fontStyle: isSelected ? 'bold' : 'normal',
-        })
-        .setOrigin(0.5, 0.5);
-
-      if (opt.adjust) {
-        const arrowSize = this.gameDimensions.textSize4;
-        const arrowY = y;
-
-        this.add
-          .text(centerX - panelW / 2 - arrowSize, arrowY, '◀', {
-            fontFamily: UI_FONT,
-            fill: isSelected ? COLORS.BG_PRIMARY : COLORS.TEXT_DIM,
-            fontSize: arrowSize,
-          })
-          .setOrigin(0.5, 0.5);
-
-        this.add
-          .text(centerX + panelW / 2 + arrowSize, arrowY, '▶', {
-            fontFamily: UI_FONT,
-            fill: isSelected ? COLORS.BG_PRIMARY : COLORS.TEXT_DIM,
-            fontSize: arrowSize,
-          })
-          .setOrigin(0.5, 0.5);
-      }
-
-      return { textObj, panel, config: opt };
+      const label = this.add.text(centerX - panelW * 0.4, y - unit * 0.42, opt.label, {
+        fontFamily: PIXEL_FONT,
+        fill: COLORS.TEXT_PRIMARY,
+        fontSize: '11px',
+      });
+      label.setOrigin(0, 0.5);
+      const hint = this.add.text(centerX - panelW * 0.4, y + unit * 0.45, opt.hint, {
+        fontFamily: UI_FONT,
+        fill: COLORS.TEXT_SECONDARY,
+        fontSize: this.gameDimensions.textSize4,
+      });
+      hint.setOrigin(0, 0.5);
+      const value = this.add.text(centerX + panelW * 0.39, y, opt.adjust ? opt.value() : 'MENU', {
+        fontFamily: UI_FONT,
+        fill: COLORS.TEXT_HIGHLIGHT,
+        fontSize: this.gameDimensions.textSize3,
+        fontStyle: 'bold',
+      });
+      value.setOrigin(1, 0.5);
+      const left = this.add.text(centerX + panelW * 0.08, y, opt.adjust ? '◀' : '', {
+        fontFamily: UI_FONT,
+        fill: COLORS.TEXT_DIM,
+        fontSize: this.gameDimensions.textSize3,
+      });
+      left.setOrigin(0.5, 0.5);
+      const right = this.add.text(centerX + panelW * 0.45, y, opt.adjust ? '▶' : '▶', {
+        fontFamily: UI_FONT,
+        fill: COLORS.TEXT_DIM,
+        fontSize: this.gameDimensions.textSize3,
+      });
+      right.setOrigin(0.5, 0.5);
+      return { panel, label, hint, value, left, right, config: opt, y, panelW, panelH };
     });
 
+    this.refreshAllOptions();
+
     this.add
-      .text(centerX, unit * 18, '◀ ▶ to change  |  ↑ ↓ to navigate  |  Enter to select', {
+      .text(centerX, unit * 17.7, '◀ ▶ thay đổi  •  ↑ ↓ chọn  •  Enter xác nhận', {
         fontFamily: UI_FONT,
         fill: COLORS.TEXT_DIM,
         fontSize: this.gameDimensions.textSize4,
@@ -136,45 +152,47 @@ export default class Settings extends Phaser.Scene {
       .setOrigin(0.5, 0.5);
   }
 
+  refreshAllOptions() {
+    this.optionTexts.forEach((_, idx) => this.refreshOption(idx));
+  }
+
   refreshOption(idx) {
     const opt = this.optionTexts[idx];
     if (!opt) return;
     const isSelected = idx === this.choice;
     const centerX = this.gameDimensions.screenCenter;
-    const y =
-      this.gameDimensions.screenSpaceUnit * (7 + idx * 3.5);
-
-    const panelColor = isSelected ? 0xf0a500 : 0xffffff;
-    const textColor = isSelected ? '#ffffff' : COLORS.BG_PRIMARY;
 
     opt.panel.clear();
-    const panelW = this.gameDimensions.screenLength * 0.6;
-    const panelH = this.gameDimensions.screenSpaceUnit * 2.2;
-    opt.panel.fillStyle(panelColor, 1);
+    opt.panel.fillStyle(isSelected ? 0xffb238 : 0x18203a, isSelected ? 0.96 : 0.88);
     opt.panel.fillRoundedRect(
-      centerX - panelW / 2,
-      y - panelH / 2,
-      panelW,
-      panelH,
-      8
+      centerX - opt.panelW / 2,
+      opt.y - opt.panelH / 2,
+      opt.panelW,
+      opt.panelH,
+      9
+    );
+    opt.panel.lineStyle(2, isSelected ? 0xffffff : 0x5cc8ff, isSelected ? 0.85 : 0.35);
+    opt.panel.strokeRoundedRect(
+      centerX - opt.panelW / 2,
+      opt.y - opt.panelH / 2,
+      opt.panelW,
+      opt.panelH,
+      9
     );
 
-    let displayText = opt.config.label;
-    if (opt.config.adjust) {
-      displayText += `: ${opt.config.value()}`;
-    }
-    opt.textObj.setText(displayText);
-    opt.textObj.setColor(textColor);
-    opt.textObj.setFontStyle(isSelected ? 'bold' : 'normal');
+    opt.label.setColor(isSelected ? COLORS.BG_PRIMARY : COLORS.TEXT_PRIMARY);
+    opt.hint.setColor(isSelected ? '#4a3307' : COLORS.TEXT_SECONDARY);
+    opt.value.setText(opt.config.adjust ? opt.config.value() : 'MENU');
+    opt.value.setColor(isSelected ? COLORS.BG_PRIMARY : COLORS.TEXT_HIGHLIGHT);
+    opt.left.setColor(isSelected ? COLORS.BG_PRIMARY : COLORS.TEXT_DIM);
+    opt.right.setColor(isSelected ? COLORS.BG_PRIMARY : COLORS.TEXT_DIM);
   }
 
   handleGesture(detection) {
     if (detection.gesture === GESTURES.SWIPE_UP) this.updateChoice(-1);
     else if (detection.gesture === GESTURES.SWIPE_DOWN) this.updateChoice(1);
-    else if (detection.gesture === GESTURES.SWIPE_RIGHT)
-      this.updateSelection(1);
-    else if (detection.gesture === GESTURES.SWIPE_LEFT)
-      this.updateSelection(-1);
+    else if (detection.gesture === GESTURES.SWIPE_RIGHT) this.updateSelection(1);
+    else if (detection.gesture === GESTURES.SWIPE_LEFT) this.updateSelection(-1);
     else if (detection.gesture === GESTURES.SINGLE_TAP && isDoubleTap(this)) {
       if (this.choice === 2) this.scene.start('MainMenu', this.settings);
     }
@@ -191,12 +209,10 @@ export default class Settings extends Phaser.Scene {
   }
 
   updateChoice(direction) {
-    const prevChoice = this.choice;
-    let newChoice = this.choice + direction;
+    const newChoice = this.choice + direction;
     if (newChoice > -1 && newChoice < this.optionTexts.length) {
       this.choice = newChoice;
-      this.refreshOption(prevChoice);
-      this.refreshOption(newChoice);
+      this.refreshAllOptions();
     }
   }
 
@@ -211,19 +227,21 @@ export default class Settings extends Phaser.Scene {
   }
 
   updateGridSize(direction) {
-    let newGridSize = this.settings.gridSize + direction;
+    const newGridSize = this.settings.gridSize + direction;
     if (
       newGridSize > this.settings.minGridSize - 1 &&
       newGridSize < this.settings.maxGridSize + 1
     ) {
       this.settings.gridSize = newGridSize;
+      saveGameSettings(this.settings);
     }
   }
 
   updateGameMode(direction) {
-    let newGameMode = this.settings.gameMode + direction;
+    const newGameMode = this.settings.gameMode + direction;
     if (newGameMode > -1 && newGameMode < Object.keys(GAMEMODES).length) {
       this.settings.gameMode = newGameMode;
+      saveGameSettings(this.settings);
     }
   }
 

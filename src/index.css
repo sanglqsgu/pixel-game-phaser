@@ -1,10 +1,33 @@
+html {
+  min-height: 100%;
+  background: #070a13;
+}
+
 body {
+  min-height: 100%;
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(92, 200, 255, 0.16), transparent 28%),
+    radial-gradient(circle at 82% 18%, rgba(255, 178, 56, 0.12), transparent 24%),
+    linear-gradient(135deg, #070a13 0%, #101426 48%, #18203a 100%);
+  color: #f8fbff;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 24px 24px;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent 78%);
 }
 
 code {

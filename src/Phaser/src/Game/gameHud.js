@@ -15,17 +15,37 @@ function ensureOverlay() {
     overlay.style.display = 'flex';
     overlay.style.justifyContent = 'space-between';
     overlay.style.alignItems = 'center';
-    overlay.style.padding = `${SPACING.XS}px ${SPACING.MD}px`;
+    overlay.style.gap = `${SPACING.MD}px`;
+    overlay.style.padding = `${SPACING.SM}px ${SPACING.MD}px`;
     overlay.style.fontFamily = FONT.UI_TEXT;
     overlay.style.fontSize = `${SPACING.LG}px`;
-    overlay.style.color = COLORS.BG_PRIMARY;
-    overlay.style.background = COLORS.TEXT_HIGHLIGHT;
+    overlay.style.color = COLORS.TEXT_PRIMARY;
+    overlay.style.background = 'linear-gradient(90deg, #12182d 0%, #1b2745 100%)';
+    overlay.style.border = `2px solid ${COLORS.TEXT_TITLE}`;
+    overlay.style.borderBottom = '0';
+    overlay.style.boxShadow = '0 -8px 24px rgba(0, 0, 0, 0.25) inset, 0 0 28px rgba(92, 200, 255, 0.18)';
     overlay.style.boxSizing = 'border-box';
-    overlay.style.height = `${SPACING.XXL + SPACING.SM}px`;
+    overlay.style.minHeight = `${SPACING.XXL + SPACING.SM}px`;
     overlay.setAttribute('role', 'status');
     overlay.setAttribute('aria-live', 'polite');
   }
   return overlay;
+}
+
+function createPill(text, accent) {
+  const el = document.createElement('span');
+  el.textContent = text;
+  el.style.display = 'inline-flex';
+  el.style.alignItems = 'center';
+  el.style.justifyContent = 'center';
+  el.style.minWidth = '96px';
+  el.style.padding = `${SPACING.XS}px ${SPACING.SM}px`;
+  el.style.border = `1px solid ${accent}`;
+  el.style.background = 'rgba(255, 255, 255, 0.08)';
+  el.style.boxShadow = `inset 0 -2px 0 rgba(0, 0, 0, 0.22), 0 0 16px ${accent}33`;
+  el.style.fontWeight = '700';
+  el.style.letterSpacing = '0.2px';
+  return el;
 }
 
 export function createHud(scene, total) {
@@ -38,14 +58,10 @@ export function createHud(scene, total) {
 
   overlay.innerHTML = '';
 
-  const logoEl = document.createElement('span');
-  logoEl.textContent = `Logo: ${total}/${total}`;
-  logoEl.style.fontWeight = 'bold';
+  const logoEl = createPill(`Logo: ${total}/${total}`, COLORS.TEXT_HIGHLIGHT);
   logoEl.setAttribute('aria-label', `Còn lại ${total} logo để thu thập`);
 
-  const timerEl = document.createElement('span');
-  timerEl.textContent = 'Time: 0s';
-  timerEl.style.fontWeight = 'bold';
+  const timerEl = createPill('Time: 0s', COLORS.PLAYER_2);
   timerEl.setAttribute('aria-label', 'Thời gian: 0 giây');
 
   overlay.appendChild(logoEl);

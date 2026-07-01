@@ -1,33 +1,26 @@
-/* ===== Font unicode-range for missing Vietnamese characters ===== */
-/* Press Start 2P from Google Fonts does not support these ranges:
-   Latin Extended-B (U+01A0-01B0): ơ, ư
-   Latin Extended Additional (U+1E00-1EFF): ạ, ả, ã, ắ, ặ, ấ, ầ, ẩ, ẫ, ậ, etc.
-   Fall back to system monospace for these characters. */
 @font-face {
   font-family: 'PixelVNFallback';
   src: local('DejaVu Sans Mono'), local('Courier New'), local('monospace');
   unicode-range: U+01A0-01BF, U+1E00-1EFF;
 }
 
-/* ===== CSS Custom Properties (from tokens.js) ===== */
 :root {
-  --color-bg-primary: #1a1a2e;
-  --color-bg-secondary: #16213e;
-  --color-text-primary: #f8f9fa;
-  --color-text-secondary: #8d99ae;
-  --color-accent: #4361ee;
-  --color-highlight: #f0a500;
-  --color-success: #43e97b;
-  --color-danger: #cc3333;
-  --color-overlay: rgba(0, 0, 0, 0.75);
-  --color-border-subtle: rgba(255, 255, 255, 0.1);
-  --color-border-row: rgba(255, 255, 255, 0.04);
-  --color-border-accent: rgba(67, 97, 238, 0.25);
+  --color-bg-primary: #101426;
+  --color-bg-secondary: #18203a;
+  --color-panel: rgba(16, 20, 38, 0.94);
+  --color-panel-strong: rgba(24, 32, 58, 0.98);
+  --color-text-primary: #f8fbff;
+  --color-text-secondary: #9aa8c7;
+  --color-accent: #5cc8ff;
+  --color-highlight: #ffb238;
+  --color-success: #19d39b;
+  --color-danger: #ff5d73;
+  --color-overlay: rgba(7, 10, 19, 0.78);
+  --color-border-subtle: rgba(255, 255, 255, 0.12);
+  --color-border-row: rgba(255, 255, 255, 0.05);
+  --color-border-accent: rgba(92, 200, 255, 0.36);
   --color-badge-bg: rgba(255, 255, 255, 0.08);
-
   --font-pixel: 'Press Start 2P', 'PixelVNFallback', monospace;
-
-  /* 4px spacing scale */
   --space-4: 4px;
   --space-8: 8px;
   --space-12: 12px;
@@ -38,25 +31,42 @@
   --space-40: 40px;
 }
 
-/* ===== Layout ===== */
 html,
-body {
-  height: 100%;
+body,
+#root {
+  min-height: 100%;
 }
 
 #root {
-  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .App {
-  padding: var(--space-24);
   position: relative;
+  padding: clamp(12px, 3vw, 28px);
 }
 
-/* ===== Overlay ===== */
+.App::before {
+  content: '';
+  position: absolute;
+  inset: clamp(4px, 1vw, 12px);
+  border: 1px solid rgba(92, 200, 255, 0.18);
+  box-shadow: 0 0 36px rgba(92, 200, 255, 0.12);
+  pointer-events: none;
+}
+
+#phaser-parent canvas {
+  display: block;
+  image-rendering: pixelated;
+  border: 2px solid rgba(92, 200, 255, 0.62);
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.42),
+    0 0 0 6px rgba(16, 20, 38, 0.75),
+    0 0 32px rgba(92, 200, 255, 0.2);
+}
+
 .history-overlay {
   position: fixed;
   inset: 0;
@@ -65,18 +75,22 @@ body {
   align-items: center;
   justify-content: center;
   z-index: 9999;
+  backdrop-filter: blur(8px);
 }
 
-/* ===== Panel ===== */
 .history-panel {
-  background: var(--color-bg-primary);
+  background:
+    linear-gradient(180deg, rgba(24, 32, 58, 0.98), rgba(12, 16, 31, 0.98));
   border: 2px solid var(--color-accent);
   display: flex;
   flex-direction: column;
-  padding: var(--space-12);
+  padding: var(--space-16);
   color: var(--color-text-primary);
   font-family: var(--font-pixel);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  box-shadow:
+    0 22px 70px rgba(0, 0, 0, 0.58),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 0 34px rgba(92, 200, 255, 0.22);
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -86,37 +100,40 @@ body {
   outline-offset: -2px;
 }
 
-/* ===== Header ===== */
 .history-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--space-8);
-  padding-bottom: var(--space-8);
-  border-bottom: 2px solid var(--color-accent);
+  margin-bottom: var(--space-12);
+  padding-bottom: var(--space-12);
+  border-bottom: 2px solid var(--color-border-accent);
 }
 
 .history-header h2 {
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.4;
   color: var(--color-accent);
   margin: 0;
-  text-shadow: 2px 2px 0 #0d0d1a;
+  text-shadow: 2px 2px 0 #070a13;
   letter-spacing: 1px;
 }
 
 .history-count {
   font-size: 9px;
   color: var(--color-highlight);
+  background: rgba(255, 178, 56, 0.12);
+  border: 1px solid rgba(255, 178, 56, 0.28);
+  padding: var(--space-4) var(--space-8);
 }
 
-/* ===== Empty State ===== */
 .history-empty {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: var(--space-40) 0;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px dashed rgba(255, 255, 255, 0.16);
 }
 
 .history-empty p {
@@ -125,15 +142,15 @@ body {
   margin: 0;
 }
 
-/* ===== Entry Sub-header ===== */
 .history-entry-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--color-bg-secondary);
-  border: 1px solid rgba(67, 97, 238, 0.3);
+  background: var(--color-panel-strong);
+  border: 1px solid var(--color-border-accent);
   padding: var(--space-8) var(--space-12);
   margin-bottom: var(--space-8);
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.24);
 }
 
 .entry-date {
@@ -147,36 +164,36 @@ body {
   font-size: 9px;
 }
 
-/* ===== Table ===== */
 .history-table {
   flex: 1;
   overflow-y: auto;
-  margin-bottom: var(--space-8);
+  margin-bottom: var(--space-12);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(7, 10, 19, 0.28);
 }
 
 .history-table::-webkit-scrollbar {
-  width: 4px;
+  width: 6px;
 }
 
 .history-table::-webkit-scrollbar-track {
-  background: transparent;
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .history-table::-webkit-scrollbar-thumb {
   background: var(--color-accent);
-  opacity: 0.5;
 }
 
 .table-header {
   display: flex;
-  padding: var(--space-4) var(--space-8);
+  padding: var(--space-8);
   font-size: 9px;
   color: var(--color-highlight);
   border-bottom: 1px solid var(--color-border-accent);
   text-transform: uppercase;
   position: sticky;
   top: 0;
-  background: var(--color-bg-primary);
+  background: #11182d;
   z-index: 1;
 }
 
@@ -187,20 +204,21 @@ body {
 .table-row {
   display: flex;
   align-items: center;
-  padding: var(--space-4) var(--space-8);
+  padding: var(--space-8);
   font-size: 9px;
   line-height: 1.4;
+  border-bottom: 1px solid var(--color-border-row);
 }
 
 .table-row--even {
-  background: var(--color-border-row);
+  background: rgba(255, 255, 255, 0.035);
 }
 
-/* ===== Table Columns ===== */
 .col-level {
   width: 22%;
   display: flex;
   flex-direction: column;
+  gap: 2px;
 }
 
 .col-items {
@@ -230,45 +248,53 @@ body {
   font-size: 10px;
 }
 
-/* ===== Item Badges ===== */
 .item-badge {
   display: inline-flex;
   align-items: center;
   gap: var(--space-4);
   background: var(--color-badge-bg);
   border: 1px solid var(--color-border-subtle);
-  padding: 0 var(--space-4) 0 2px;
+  padding: 2px var(--space-4) 2px 2px;
   font-size: 8px;
   white-space: nowrap;
 }
 
 .item-icon {
-  width: 12px;
-  height: 12px;
+  width: 13px;
+  height: 13px;
   image-rendering: pixelated;
 }
 
-/* ===== Navigation ===== */
 .history-nav {
   display: flex;
   justify-content: center;
   gap: var(--space-12);
-  margin-bottom: var(--space-8);
+  margin-bottom: var(--space-12);
+}
+
+.nav-btn,
+.btn {
+  border-radius: 0;
+  font-family: var(--font-pixel);
+  cursor: pointer;
+  transition: transform 0.1s ease, background 0.1s ease, opacity 0.1s ease;
 }
 
 .nav-btn {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.07);
   border: 1px solid var(--color-accent);
   color: var(--color-text-primary);
   padding: var(--space-8) var(--space-16);
   font-size: 9px;
-  cursor: pointer;
-  font-family: var(--font-pixel);
-  transition: background 0.1s ease;
+}
+
+.nav-btn:hover:not(:disabled),
+.btn:hover {
+  transform: translateY(-1px);
 }
 
 .nav-btn:hover:not(:disabled) {
-  background: var(--color-accent);
+  background: rgba(92, 200, 255, 0.24);
 }
 
 .nav-btn:disabled {
@@ -277,12 +303,12 @@ body {
   border-color: var(--color-border-subtle);
 }
 
-.nav-btn:focus-visible {
+.nav-btn:focus-visible,
+.btn:focus-visible {
   outline: 2px solid var(--color-highlight);
   outline-offset: 2px;
 }
 
-/* ===== Action Buttons ===== */
 .history-actions {
   display: flex;
   justify-content: center;
@@ -292,35 +318,28 @@ body {
 .btn {
   padding: var(--space-8) var(--space-20);
   font-size: 9px;
-  border: none;
-  cursor: pointer;
-  font-family: var(--font-pixel);
-  transition: opacity 0.1s ease;
-}
-
-.btn:hover {
-  opacity: 0.85;
-}
-
-.btn:focus-visible {
-  outline: 2px solid var(--color-highlight);
-  outline-offset: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
 }
 
 .btn--primary {
   background: var(--color-accent);
-  color: var(--color-text-primary);
-  border: 1px solid var(--color-border-subtle);
+  color: #06101e;
 }
 
 .btn--danger {
   background: var(--color-danger);
   color: var(--color-text-primary);
-  border: 1px solid var(--color-border-subtle);
 }
 
-/* ===== Responsive ===== */
 @media (max-width: 480px) {
+  .App {
+    padding: 10px;
+  }
+
+  .history-panel {
+    padding: var(--space-12);
+  }
+
   .history-header h2 {
     font-size: 10px;
   }

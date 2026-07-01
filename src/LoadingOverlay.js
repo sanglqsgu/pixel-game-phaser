@@ -17,22 +17,26 @@ export default function LoadingOverlay({ visible }) {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        background: '#000',
-        color: '#f9a602',
+        background: 'linear-gradient(180deg, #070a13 0%, #101426 100%)',
+        color: '#ffb238',
         fontFamily: '"Press Start 2P", monospace',
         fontSize: '14px',
         zIndex: 100,
+        border: '2px solid rgba(92, 200, 255, 0.55)',
+        boxSizing: 'border-box',
       }}
     >
       <div
         style={{
-          width: '40px',
-          height: '40px',
-          border: '4px solid #333',
-          borderTopColor: '#f9a602',
+          width: '42px',
+          height: '42px',
+          border: '4px solid rgba(255, 255, 255, 0.14)',
+          borderTopColor: '#5cc8ff',
+          borderRightColor: '#ffb238',
           borderRadius: '50%',
           animation: 'loading-spin 0.8s linear infinite',
-          marginBottom: '16px',
+          marginBottom: '18px',
+          boxShadow: '0 0 22px rgba(92, 200, 255, 0.32)',
         }}
       />
       <span>Đang tải...</span>

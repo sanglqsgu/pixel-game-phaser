@@ -12,6 +12,8 @@ import {
   getObstacleCount,
 } from '../Game/randomImages';
 import { createHud, updateHud, destroyHud } from '../Game/gameHud';
+import { loadMazeMarkers, drawMazeMarker } from '../Game/mazeMarkers';
+import { saveGameSettings } from '../Game/gameProgress';
 
 export default class GamemodeTwoPlayer extends Phaser.Scene {
   constructor() {
@@ -28,6 +30,7 @@ export default class GamemodeTwoPlayer extends Phaser.Scene {
 
   preload() {
     loadRandomImages(this);
+    loadMazeMarkers(this);
     const baseUrl = process.env.PUBLIC_URL || '';
     this.load.spritesheet('car', `${baseUrl}/assets/object/car/Car2.png`, {
       frameWidth: 80,
@@ -51,6 +54,7 @@ export default class GamemodeTwoPlayer extends Phaser.Scene {
     });
     this.screenHalfway = this.game.config.width / 2;
     gestureDetection(this.input, this.handleGesture);
+    saveGameSettings(this.settings);
 
     this.graphics = this.add.graphics();
     this.maze = new GameMaze(this.game, this.graphics, this.settings.gridSize);
@@ -73,6 +77,41 @@ export default class GamemodeTwoPlayer extends Phaser.Scene {
     });
 
     this.maze.drawMaze();
+    this.maze.fillGrid(p1InitialPosition, COLORS_0x.PLAYER_1);
+    this.maze.fillGrid(p2InitialPosition, COLORS_0x.PLAYER_2);
+    const markerOffset = Math.max(0, this.maze.sideLength * 0.12);
+    drawMazeMarker(this, this.maze, p1InitialPosition, {
+      kind: 'start',
+      label: 'P1 START',
+      accent: 0x4f8cff,
+      iconAlpha: 0.72,
+      offsetX: -markerOffset,
+      offsetY: -markerOffset,
+    });
+    drawMazeMarker(this, this.maze, this.p2EndPoint, {
+      kind: 'finish',
+      label: 'P2 GOAL',
+      accent: 0x19d39b,
+      iconAlpha: 0.72,
+      offsetX: markerOffset,
+      offsetY: markerOffset,
+    });
+    drawMazeMarker(this, this.maze, p2InitialPosition, {
+      kind: 'start',
+      label: 'P2 START',
+      accent: 0x19d39b,
+      iconAlpha: 0.72,
+      offsetX: -markerOffset,
+      offsetY: -markerOffset,
+    });
+    drawMazeMarker(this, this.maze, this.p1EndPoint, {
+      kind: 'finish',
+      label: 'P1 GOAL',
+      accent: 0x4f8cff,
+      iconAlpha: 0.72,
+      offsetX: markerOffset,
+      offsetY: markerOffset,
+    });
     this.player1.drawCharacter();
     this.player2.drawCharacter();
 
@@ -163,6 +202,7 @@ export default class GamemodeTwoPlayer extends Phaser.Scene {
         this.remindCollectAll();
         return;
       }
+      saveGameSettings(this.settings);
       this.scene.start('EndScreen', {
         settings: this.settings,
         results: {
@@ -191,6 +231,7 @@ export default class GamemodeTwoPlayer extends Phaser.Scene {
         this.remindCollectAll();
         return;
       }
+      saveGameSettings(this.settings);
       this.scene.start('EndScreen', {
         settings: this.settings,
         results: {
@@ -205,6 +246,7 @@ export default class GamemodeTwoPlayer extends Phaser.Scene {
 
   update() {
     if (Phaser.Input.Keyboard.JustDown(this.keys.exit)) {
+      saveGameSettings(this.settings);
       this.scene.start('MainMenu', this.settings);
     }
 
